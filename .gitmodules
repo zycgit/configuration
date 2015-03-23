@@ -16,3 +16,6 @@
 [submodule "project-all/project-depManager"]
 	path = project-all/project-depManager
 	url = https://git.oschina.net/zycgit/depManager.git
+[submodule "document"]
+	path = document
+	url = https://git.oschina.net/zycgit/document.git
