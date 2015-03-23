@@ -1,0 +1,15 @@
+[submodule "project-all/project-hasor"]
+	path = project-all/project-hasor
+	url = https://git.oschina.net/zycgit/hasor.git
+[submodule "project-all/project-rsf"]
+	path = project-all/project-rsf
+	url = https://git.oschina.net/zycgit/rsf.git
+[submodule "project-all/project-mysearch"]
+	path = project-all/project-mysearch
+	url = https://git.oschina.net/zycgit/mysearch.git
+[submodule "project-all/project-ipserver"]
+	path = project-all/project-ipserver
+	url = https://git.oschina.net/zycgit/ipserver.git
+[submodule "project-all/demo-Web"]
+	path = project-all/demo-Web
+	url = https://git.oschina.net/zycgit/demo-Web.git
