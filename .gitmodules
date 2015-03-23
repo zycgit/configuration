@@ -13,3 +13,6 @@
 [submodule "project-all/demo-Web"]
 	path = project-all/demo-Web
 	url = https://git.oschina.net/zycgit/demo-Web.git
+[submodule "project-all/project-depManager"]
+	path = project-all/project-depManager
+	url = https://git.oschina.net/zycgit/depManager.git
