@@ -10,12 +10,14 @@
 [submodule "project-all/project-ipserver"]
 	path = project-all/project-ipserver
 	url = https://git.oschina.net/zycgit/ipserver.git
-[submodule "project-all/demo-Web"]
-	path = project-all/demo-Web
-	url = https://git.oschina.net/zycgit/demo-Web.git
 [submodule "project-all/project-depManager"]
 	path = project-all/project-depManager
 	url = https://git.oschina.net/zycgit/depManager.git
 [submodule "document"]
 	path = document
 	url = https://git.oschina.net/zycgit/document.git
+[submodule "project-all/demo-all"]
+
+	path = project-all/demo-all
+
+	url = https://git.oschina.net/zycgit/demo-all.git
