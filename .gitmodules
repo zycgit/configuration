@@ -17,7 +17,5 @@
 	path = document
 	url = https://git.oschina.net/zycgit/document.git
 [submodule "project-all/demo-all"]
-
 	path = project-all/demo-all
-
 	url = https://git.oschina.net/zycgit/demo-all.git
