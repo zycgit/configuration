@@ -34,6 +34,6 @@
 		<module>project-ipserver</module>
 		<module>project-depManager</module>
 
-		<module>demo-Web</module>
+		<module>demo-all</module>
 	</modules>
 </project>
