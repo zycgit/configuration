@@ -1,11 +1,6 @@
 ﻿<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
-	<parent>
-		<groupId>org.sonatype.oss</groupId>
-		<artifactId>oss-parent</artifactId>
-		<version>7</version>
-	</parent>
 
 	<groupId>net.hasor</groupId>
 	<artifactId>hasor-parent</artifactId>
@@ -28,11 +23,11 @@
 
 	<properties>
 		<wtpversion>2.0</wtpversion>
-		<testSkip>true</testSkip>
 		<downloadSources>true</downloadSources>
 		<downloadJavadocs>true</downloadJavadocs>
 		<gpg.executable>gpg2</gpg.executable>
-		<scm.pushVersion>0.0.10</scm.pushVersion>
+		<gpg.passphrase>fubing220106</gpg.passphrase>
+		<maven.test.skip>true</maven.test.skip>
 	</properties>
 
 	<!-- SCM -->
@@ -40,7 +35,6 @@
 		<connection>         scm:git@git.oschina.net:zycgit/hasor-configuration.git</connection>
 		<developerConnection>scm:git@git.oschina.net:zycgit/hasor-configuration.git</developerConnection>
 		<url>                    git@git.oschina.net:zycgit/hasor-configuration.git</url>
-		<tag>release.0.0.5</tag>
 	</scm>
 
 	<!-- 构建描述 -->
@@ -54,15 +48,7 @@
 				<configuration>
 					<source>1.6</source>
 					<target>1.6</target>
-				</configuration>
-			</plugin>
-			<!-- Test -->
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-surefire-plugin</artifactId>
-				<version>2.17</version>
-				<configuration>
-					<skipTests>${testSkip}</skipTests>
+					<encoding>UTF8</encoding>
 				</configuration>
 			</plugin>
 			<!-- Source -->
@@ -90,6 +76,8 @@
 					<excludePackageNames>
 						net.hasor.libs.*,org.*,
 					</excludePackageNames>
+					<encoding>UTF-8</encoding>
+					<outputEncoding>UTF-8</outputEncoding>
 				</configuration>
 				<executions>
 					<execution>
@@ -175,7 +163,7 @@
 							<autoVersionSubmodules>true</autoVersionSubmodules>
 							<useReleaseProfile>false</useReleaseProfile>
 							<releaseProfiles>release</releaseProfiles>
-							<tagNameFormat>Release.Hasor-${scm.pushVersion}</tagNameFormat>
+							<tagNameFormat>Release.Hasor-</tagNameFormat>
 							<goals>deploy</goals>
 						</configuration>
 					</plugin>
