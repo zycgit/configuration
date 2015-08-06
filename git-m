@@ -1,6 +1,6 @@
 #!/bin/bash
 #----changed the git history author info---
-#---see http://baike.corp.taobao.com/index.php/Git-m --
+#---see http://git-scm.com/docs/git-filter-branch/ --
 bldgrn='\e[1;32m' # Green
 bldylw='\e[1;33m' # Yellow
 txtrst='\e[0m'    # Text Reset
