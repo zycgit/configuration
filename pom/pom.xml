@@ -21,6 +21,15 @@
 		</license>
 	</licenses>
 
+	<!-- 开发者 -->
+	<developers>
+		<developer>
+			<name>赵永春(Mr.Zhao)</name>
+			<email>zyc@hasor.net</email>
+		</developer>
+	</developers>
+
+	<!-- 配置属性 -->
 	<properties>
 		<wtpversion>2.0</wtpversion>
 		<downloadSources>true</downloadSources>
