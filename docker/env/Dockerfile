@@ -1,7 +1,5 @@
-#version 0.0.1
-#
 FROM java:7
-MAINTAINER ZhaoYongChun "zyc@byshell.org"
+MAINTAINER ZhaoYongChun "zyc@hasor.net"
 
 # maven
 ENV MAVEN_VERSION 3.3.3
@@ -10,34 +8,22 @@ RUN curl -fsSL http://archive.apache.org/dist/maven/maven-3/$MAVEN_VERSION/binar
 	&& ln -s /usr/share/maven/bin/mvn /usr/bin/mvn
 ENV MAVEN_HOME /usr/share/maven
 
+
 # gnupg
-RUN apt-get update
-RUN apt-get install -y gnupg
-RUN apt-get install -y expect
-RUN apt-get install -y pacman
+RUN apt-get update \
+	&& apt-get install -y gnupg expect git \
+	&& mkdir ~/.gnupg
 
-ADD . ~/script
-cat /dev/urandom
-
-ENV relName
-ENV relName
-ENV relName
-
-ONBUILD ~/script/pre_gpg.sh expect gpg --gen-key
+ADD . /usr/share/deployScript
+RUN ln -s /usr/share/deployScript /script \
+	&& chown 755 /script/*.sh
 
 
-# deploy
-RUN PWD=curl http://files.byshell.org/settings/password.key
-RUN curl -fsSL http://files.byshell.org/settings/ssh.zip >> ~/ssh.zip
-RUN curl -fsSL http://files.byshell.org/settings/gnupg.zip >> ~/gnupg.zip
-RUN unzip -P"$PWD" -d ~/.gnupg ~/gnupg.zip
-RUN unzip -P"$PWD" -d ~/.ssh ~/ssh.zip
-
-RUN wget http://files.byshell.org/script/deploy.sh \
-	&& mv /usr/share/apache-maven-$MAVEN_VERSION /usr/share/maven \
-	 
+ENTRYPOINT [ "/script/init_gnupg.sh" , "userName" , "user@mail.cc" , "password" ]
 
 
+# project
+VOLUME /project_home
 
-
-CMD ["mvn"]
+#CMD ["~/script/pre_gpg.sh"]
+#	&& ln -s /usr/share/deployScript/init_gnupg.sh /etc/init.d/init_gnupg.sh
