@@ -19,6 +19,9 @@ RUN ln -s /usr/share/deployScript /script \
 	&& chown 755 /script/*.sh
 
 
+# git
+
+
 ENTRYPOINT [ "/script/init_gnupg.sh" , "userName" , "user@mail.cc" , "password" ]
 
 
