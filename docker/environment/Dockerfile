@@ -5,11 +5,7 @@ MAINTAINER ZhaoYongChun "zyc@hasor.net"
 RUN apt-get update && apt-get install -y --no-install-recommends \
                 ca-certificates \
                 curl \
-                wget \
-                unzip \
-                gnupg \
-                expect \
-                git
+                wget
 
 # java7
 ENV LANG C.UTF-8
