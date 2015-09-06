@@ -20,3 +20,5 @@ expect {
   "Enter passphrase:"         { send "$passphrase\r"; exp_continue; }
   "Repeat passphrase:"        { send "$passphrase\r"; exp_continue; }
 }
+
+spawn rm -rf ~/.gnupg/random_seed
