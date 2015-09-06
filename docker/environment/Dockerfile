@@ -23,3 +23,8 @@ RUN curl -fsSL http://archive.apache.org/dist/maven/maven-3/$MAVEN_VERSION/binar
         && mv /usr/share/apache-maven-$MAVEN_VERSION /usr/share/maven \
         && ln -s /usr/share/maven/bin/mvn /usr/bin/mvn
 ENV MAVEN_HOME /usr/share/maven
+ENV MAVEN_REPO /repo
+VOLUME /repo
+RUN sed -i '/<!-- localRepository/i\<localRepository>$MAVEN_REPO</localRepository>' $MAVEN_HOME/conf/settings.xml
+
+CMD ["/bin/bash"]

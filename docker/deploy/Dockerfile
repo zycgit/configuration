@@ -2,9 +2,6 @@ FROM zycgit/environment
 MAINTAINER ZhaoYongChun "zyc@hasor.net"
 
 
-
-
-
 # work
 #VOLUME /work
 ENV WORK_HOME /work
