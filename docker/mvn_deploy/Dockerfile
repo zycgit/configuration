@@ -16,7 +16,8 @@ ENV WORK_HOME /work
 ADD . /usr/share/deployScript
 RUN ln -s /usr/share/deployScript /script \
         && chown 755 /script/*.sh \
-        && ln -s /script/deploy.sh /usr/bin/deploy
+        && chown 755 /script/*.py \
+        && ln -s /script/deploy.py /usr/bin/deploy
 
-ENTRYPOINT [ "/script/init_gnupg.sh" , "userName" , "user@mail.cc" , "password" ]
-CMD ["/script/deploy.sh"]
+ENTRYPOINT [ "/script/init_gnupg.py" , "userName" , "user@mail.cc" , "password" ]
+CMD ["/script/deploy.py"]
