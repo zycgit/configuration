@@ -19,5 +19,10 @@ RUN ln -s /usr/share/deployScript /script \
         && chown 755 /script/*.py \
         && ln -s /script/deploy.py /usr/bin/deploy
 
-ENTRYPOINT [ "/script/init_gnupg.py" ]
+ENV userName
+ENV userMail
+ENV passphrase
+ENV default_branch "master"
+
+ENTRYPOINT [ "/script/init_gnupg.py" , $userName , $userMail , $passphrase ]
 CMD ["/script/deploy.py"]

@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 import os
 import sys
+
+
 #
 def foreachKey(function):
     lines = os.popen("gpg -k | grep 'pub '").readlines()
@@ -79,6 +81,7 @@ def initGPG(user, email, passphrase):
                 sub_str = redFile(subKeyFile)
                 gpgKey = pub_str + ":" + sub_str
                 os.system("echo '' > " + lockKeyFile)
+                sendKey(pub_str)  # push to server
                 break
             else:
                 os.system("rm -rf " + lockKeyFile)
@@ -90,16 +93,19 @@ def initGPG(user, email, passphrase):
 #
 #
 #
-userName = os.getenv('userName')
-mail = os.getenv('mail')
-passphrase = os.getenv('passphrase')
 if len(sys.argv) == 4:
     userName = sys.argv[1]
     mail = sys.argv[2]
     passphrase = sys.argv[3]
-if userName != None and mail != None and passphrase != None:
-    print("userName: %s, mail: %s, passphrase: %s" % (userName , mail, passphrase))
-    ck = initGPG(userName , mail, passphrase)
 else:
-    print("args error.")
+    userName = os.getenv('userName')
+    mail = os.getenv('userMail')
+    passphrase = os.getenv('passphrase')
+
+print("userName: %s, mail: %s, passphrase: %s" % (userName , mail, passphrase))
+if userName != None and mail != None and passphrase != None:
+    ck = initGPG(userName , mail, passphrase)
+    exit(0)
 #
+print("args error.")
+exit(1)
