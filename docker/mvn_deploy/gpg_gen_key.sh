@@ -1,11 +1,10 @@
 #!/usr/bin/expect
 set timeout 5
-set userName   [lindex $user 0]
-set userMail   [lindex $mail 1]
-set passphrase [lindex $passphrase 2]
+set userName   [lindex $argv 0]
+set userMail   [lindex $argv 1]
+set passphrase [lindex $argv 2]
 
-spawn rm -rf ~/.gnupg/random_seed
-spawn dd if=/dev/urandom of=~/.gnupg/random_seed bs=1024b count=1
+spawn dd if=/dev/urandom of=~/.gnupg/random_seed bs=2M count=1
 
 spawn gpg --gen-key
 expect {
@@ -20,5 +19,3 @@ expect {
   "Enter passphrase:"         { send "$passphrase\r"; exp_continue; }
   "Repeat passphrase:"        { send "$passphrase\r"; exp_continue; }
 }
-
-spawn rm -rf ~/.gnupg/random_seed

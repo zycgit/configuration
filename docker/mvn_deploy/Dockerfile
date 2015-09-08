@@ -19,5 +19,5 @@ RUN ln -s /usr/share/deployScript /script \
         && chown 755 /script/*.py \
         && ln -s /script/deploy.py /usr/bin/deploy
 
-ENTRYPOINT [ "/script/init_gnupg.py" , "userName" , "user@mail.cc" , "password" ]
+ENTRYPOINT [ "/script/init_gnupg.py" ]
 CMD ["/script/deploy.py"]
