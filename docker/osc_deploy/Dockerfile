@@ -10,7 +10,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         && rm -rf ~/.gnupg/
 
 # work
-#VOLUME /work
+VOLUME /work
 ENV WORK_HOME /work
 
 # script

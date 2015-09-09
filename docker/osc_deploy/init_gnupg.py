@@ -105,7 +105,7 @@ if len(sys.argv) == 4:
     mail = sys.argv[2]
     passphrase = sys.argv[3]
 else:
-    userName = datetime.datetime.now().strftime("u%Y%m%d_%H%M%S_%f")
+    userName = datetime.datetime.now().strftime("u%Y%m%d%H%M%S")
     mail = userName + "@t.hasor.net"
     passphrase = os.getenv('passphrase')
 
