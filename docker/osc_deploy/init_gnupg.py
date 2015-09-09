@@ -2,8 +2,6 @@
 import os
 import sys
 import datetime
-
-
 #
 def foreachKey(function):
     lines = os.popen("gpg -k | grep 'pub '").readlines()

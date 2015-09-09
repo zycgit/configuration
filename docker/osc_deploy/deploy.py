@@ -2,8 +2,7 @@
 import datetime
 import os
 import sys
-
-
+#
 def git_swapath(workDir, function):
     currentDir = os.getcwd()
     os.chdir(workDir)
@@ -29,7 +28,7 @@ def git_clone(config):
         exit(result)  # exit
     return workDir
 #
-def git_config(workDir, config):
+def git_configProject(workDir, config):
     git_name = config["git_name"]
     git_mail = config["git_mail"]
     git_account = config["git_account"]
@@ -38,11 +37,23 @@ def git_config(workDir, config):
         os.system('git config user.name "%s"' % (git_name))
         os.system('git config user.email %s' % (git_mail))
         os.system('git config credential.helper store')
-        os.system('echo "https://%s:%s@git.oschina.net" > ~/.git-credentials' % (git_account, git_pwd))
+        #
+        creditsStr = "https://%s:%s@git.oschina.net" % (git_account, git_pwd)
+        credentialsStr = os.popen("cat ~/.git-credentials | grep '%s'" % (creditsStr)).read()
+        if credentialsStr.strip() == "" :
+            os.system('echo "%s" > ~/.git-credentials' % (creditsStr,))
     return git_swapath(workDir, foo)
 #
-def git_markTag(workDir, config):
-    print()
+def git_configMaven(config):
+    ossrhStr = os.popen("cat $MAVEN_HOME/conf/settings.xml | grep '<id>ossrh</id>'").read()
+    if ossrhStr.strip() == "" :
+        maven_user = os.getenv('userMail')
+        maven_pass = os.getenv('userMail')
+        print("write ‘ossrh’ to settings.xml")
+        os.system("sed -i '/<\/servers>/i\<server><id>ossrh</id><username>" + maven_user + "</username><password>" + maven_pass + "</password></server>' $MAVEN_HOME/conf/settings.xml")
+    else:
+        print("do not config maven.")
+#
 #
 #
 config = {}
@@ -78,8 +89,8 @@ else:
 #
 #
 #
-git_config(git_clone(config), config)
-os.system('init_gnupg.py "%s" "%s" "%s"' % (config["git_name"], config["git_mail"], config["git_pwd"]))
+git_configMaven(config)
+git_configProject(git_clone(config), config)
 #
 #
 #
@@ -87,8 +98,6 @@ os.system('init_gnupg.py "%s" "%s" "%s"' % (config["git_name"], config["git_mail
 # git commit -m "auto commit."
 # git push
 #
-# 6-> deploy "zyc" "zyc@hasor.net" "zycgit" "password" "master" "https://git.oschina.net/zycgit/hasor-garbage.git"
+# 8-> deploy "zyc" "zyc@hasor.net" "zycgit" "password" "master" "https://git.oschina.net/zycgit/hasor-garbage.git"
 # 4-> deploy "zycgit" "password" "master" "https://git.oschina.net/zycgit/hasor-garbage.git"
 # 3-> deploy "zycgit" "password" "https://git.oschina.net/zycgit/hasor-garbage.git"
-
-
