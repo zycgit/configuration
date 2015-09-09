@@ -66,7 +66,8 @@ def initGPG(user, email, passphrase):
     else :
         print("userName: %s, mail: %s, passphrase: %s" % (user , email, passphrase))
         while True:  # may be failed ,so do while
-            execCmd = "%s/gpg_gen_key.sh %s %s %s" % (os.getcwd(), user, email, passphrase)
+            shellPath = os.path.split(os.path.realpath(__file__))[0]
+            execCmd = "%s/gpg_gen_key.sh %s %s %s" % (shellPath, user, email, passphrase)
             print("do run ->" + execCmd)
             execLines = os.popen(execCmd).readlines()
             print("delete random_seed.")
