@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import os
 import sys
+import datetime
 
 
 #
@@ -65,6 +66,7 @@ def initGPG(user, email, passphrase):
         gpgKey = pub_str + ":" + sub_str
         print("gpgKey %s from cache." % (gpgKey))
     else :
+        print("userName: %s, mail: %s, passphrase: %s" % (user , email, passphrase))
         while True:  # may be failed ,so do while
             execLines = os.popen("%s/gpg_gen_key.sh %s %s %s 2>&1" % (os.getcwd(), user, email, passphrase)).readlines()
             os.system("rm -rf ~/.gnupg/random_seed")
@@ -98,11 +100,10 @@ if len(sys.argv) == 4:
     mail = sys.argv[2]
     passphrase = sys.argv[3]
 else:
-    userName = os.getenv('userName')
-    mail = os.getenv('userMail')
+    userName = datetime.datetime.now().strftime("u%Y%m%d_%H%M%S_%f")
+    mail = userName + "@t.hasor.net"
     passphrase = os.getenv('passphrase')
 
-print("userName: %s, mail: %s, passphrase: %s" % (userName , mail, passphrase))
 if userName != None and mail != None and passphrase != None:
     ck = initGPG(userName , mail, passphrase)
     exit(0)

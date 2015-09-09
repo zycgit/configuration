@@ -4,7 +4,7 @@ set userName   [lindex $argv 0]
 set userMail   [lindex $argv 1]
 set passphrase [lindex $argv 2]
 
-spawn dd if=/dev/urandom of=~/.gnupg/random_seed bs=2M count=1
+spawn dd if=/dev/urandom of=~/.gnupg/random_seed bs=1M count=1
 
 spawn gpg --gen-key
 expect {
