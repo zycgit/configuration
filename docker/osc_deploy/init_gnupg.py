@@ -66,8 +66,12 @@ def initGPG(user, email, passphrase):
     else :
         print("userName: %s, mail: %s, passphrase: %s" % (user , email, passphrase))
         while True:  # may be failed ,so do while
-            execLines = os.popen("%s/gpg_gen_key.sh %s %s %s 2>&1" % (os.getcwd(), user, email, passphrase)).readlines()
+            execCmd = "%s/gpg_gen_key.sh %s %s %s" % (os.getcwd(), user, email, passphrase)
+            print("do run ->" + execCmd)
+            execLines = os.popen(execCmd).readlines()
+            print("delete random_seed.")
             os.system("rm -rf ~/.gnupg/random_seed")
+            print("test gnupg...")
             for line in execLines :
                 if line.startswith('pub   '):
                     keyVal = line.split("/")[1].split(" ")[0]
@@ -81,12 +85,14 @@ def initGPG(user, email, passphrase):
                 sub_str = redFile(subKeyFile)
                 gpgKey = pub_str + ":" + sub_str
                 os.system("echo '' > " + lockKeyFile)
+                print("gen gnupg ok.")
                 sendKey(pub_str)  # push to server
                 break
             else:
                 os.system("rm -rf " + lockKeyFile)
                 os.system("rm -rf " + pubKeyFile)
                 os.system("rm -rf " + subKeyFile)
+                print("gen gnupg failed , try again.")
             #
         print("gpgKey %s from gen." % (gpgKey))
     return gpgKey
