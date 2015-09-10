@@ -184,13 +184,14 @@ def mvn_deploy(workDir, passphrase):
 #
 #
 randomUser = datetime.datetime.now().strftime("u%Y%m%d%H%M%S")
+randomMail = randomUser + "@t.hasor.net"
 git_name = args("user", randomUser)
-git_mail = args("mail", randomUser + "@t.hasor.net")
+git_mail = args("mail", randomMail)
 passphrase = args("passphrase", "123456")
 git_branch = args("branch", "master")
-git_repo = args("repo")
-git_account = args("git_user")
-git_pwd = args("git_pwd")
+git_repo = args("repo", "")
+git_account = args("git_user", "master")
+git_pwd = args("git_pwd", "master")
 maven_user = args("mvn_user", "admin")
 maven_pwd = args("mvn_pwd", "")
 
@@ -214,4 +215,4 @@ else:
 # env mvn_pwd=
 #
 # deploy "-git_user=zycgit" "-git_pwd=password" "-branch=master" "-repo=https://git.oschina.net/zycgit/hasor-garbage.git"
-# deploy "-git_user=zycgit" "-git_pwd=password" "-repo=https://git.oschina.net/zycgit/hasor-garbage.git"
+# deploy "-git_user=zycgit" "-git_pwd=password" "-repo=https://git.oschina.net/zycgit/hasor-garbage.git”：：：
