@@ -196,10 +196,10 @@ maven_user = args("mvn_user", "admin")
 maven_pwd = args("mvn_pwd", "")
 
 if sys.argv[1] == "init":
-    gpg_init(git_name, git_mail, passphrase)
+    gpg_init(randomUser, randomMail, passphrase)
     print("init finish.")
 elif sys.argv[1] == "deploy":
-    gpg_init(git_name, git_mail, passphrase)
+    gpg_init(randomUser, randomMail, passphrase)
     workDir = git_clone(git_branch , git_repo, git_name, git_mail, git_account, git_pwd)
     mvn_config(maven_user, maven_pwd)
     mvn_deploy(workDir, passphrase)
