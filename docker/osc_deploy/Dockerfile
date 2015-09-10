@@ -21,9 +21,9 @@ RUN ln -s /usr/share/deployScript /script \
         && ln -s /script/deploy.py /usr/bin/deploy
 
 ENV passphrase "123456"
-ENV maven_user "admin"
-ENV maven_password ""
-ENV default_branch "master"
+ENV mvn_user "admin"
+ENV mvn_pwd ""
+ENV branch "master"
 
-ENTRYPOINT [ "/script/init_gnupg.py" ]
-#CMD ["/script/deploy.py"]
+ENTRYPOINT [ "/script/deploy.py" ]
+CMD ["init"]
