@@ -151,7 +151,7 @@ def git_project(workDir, git_name, git_mail, git_account, git_pwd):
     return onPath(workDir, foo)
 #
 def git_clone(git_branch, git_repository, git_name, git_mail, git_account, git_pwd):
-    WORK_HOME = args('WORK_HOME’ , None);
+    WORK_HOME = args('WORK_HOME' , None);
     if WORK_HOME == None or WORK_HOME.strip() == "" :
         WORK_HOME = os.path.expanduser('~') + "/work"
     workDir = +"/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S-%f")
