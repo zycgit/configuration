@@ -25,5 +25,5 @@ ENV mvn_user "admin"
 ENV mvn_pwd ""
 ENV branch "master"
 
-ENTRYPOINT [ "/script/deploy.py" ]
-CMD ["init"]
+#ENTRYPOINT [ "/script/deploy.py" ]
+#CMD ["init"]
