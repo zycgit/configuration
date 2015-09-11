@@ -9,7 +9,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # java7
 ENV LANG C.UTF-8
-RUN apt-get install -y openjdk-7-jre-headless="7u79-2.5.6-1~deb8u1" \
+RUN apt-get install -y openjdk-7-jdk="7u79-2.5.6-1~deb8u1" \
         && rm -rf /var/lib/apt/lists/*
 ENV JAVA_HOME /usr/lib/jvm/java-7-openjdk-amd64
 

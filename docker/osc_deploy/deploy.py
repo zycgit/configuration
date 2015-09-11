@@ -13,6 +13,14 @@ def readFile(file):
         file_pub.close()
     return body.strip()
 #
+def os_system(cmd):
+    print(cmd)
+    return os.system(cmd)
+#
+def os_popen(cmd):
+    print(cmd)
+    return os.popen(cmd)
+#
 def onPath(workDir, function):
     currentDir = os.getcwd()
     os.chdir(workDir)
@@ -39,7 +47,7 @@ def args(name, defaultVal):
 #-------------------------------------------------------------------
 #
 def gpg_foreachKey(function):
-    lines = os.popen("gpg -k | grep 'pub '").readlines()
+    lines = os_popen("gpg -k | grep 'pub '").readlines()
     for value in lines:
         keyVal = value.split("/")[1].split(" ")[0]
         result = function(keyVal)
@@ -55,8 +63,7 @@ def gpg_inKey(keyVal, function):
 #
 def gpg_recvKey(keyVal):
     def foo(key):
-        print("check gpg key %s in server 'hkp://pool.sks-keyservers.net'..." % (keyVal))
-        execResult = os.popen("gpg --keyserver hkp://pool.sks-keyservers.net --recv-keys %s 2>&1 | grep 'Total number'" % (keyVal)).read()
+        execResult = os_popen("gpg --keyserver hkp://pool.sks-keyservers.net --recv-keys %s 2>&1 | grep 'Total number'" % (keyVal)).read()
         execResult = execResult.split(":")[2].strip()
         if execResult == "1" :
             return True
@@ -68,7 +75,7 @@ def gpg_recvKey(keyVal):
 #
 def gpg_sendKey(keyVal):
     def foo(key):
-        execResult = os.system("gpg --keyserver hkp://pool.sks-keyservers.net --send-keys %s" % (keyVal))
+        execResult = os_system("gpg --keyserver hkp://pool.sks-keyservers.net --send-keys %s" % (keyVal))
         if execResult == 0 :
             print("the key %s has been push." % (key))
             return True
@@ -99,33 +106,31 @@ def gpg_init(user, email, passphrase):
                 print("gen gpgkeys failed, maximizing 10.")
                 exit(1)
             #
+            os_system("dd if=/dev/urandom of=~/.gnupg/random_seed bs=1M count=1")
             shellPath = os.path.split(os.path.realpath(__file__))[0]
-            execCmd = "%s/gpg_gen_key.sh %s %s %s" % (shellPath, user, email, passphrase)
-            print("on %s , do run -> %s" % (tryCount, execCmd))
-            execLines = os.popen(execCmd).readlines()
-            print("delete random_seed.")
-            os.system("rm -rf ~/.gnupg/random_seed")
+            execLines = os_popen("%s/gpg_gen_key.sh %s %s %s" % (shellPath, user, email, passphrase)).readlines()
+            os_system("rm -rf ~/.gnupg/random_seed")
             print("process result...")
             for line in execLines :
                 if line.startswith('pub   '):
                     keyVal = line.split("/")[1].split(" ")[0]
-                    os.system("echo '%s' > %s" % (keyVal, pubKeyFile))
+                    os_system("echo '%s' > %s" % (keyVal, pubKeyFile))
                 elif line.startswith('sub   '):
                     keyVal = line.split("/")[1].split(" ")[0]
-                    os.system("echo '%s' > %s" % (keyVal, subKeyFile))
+                    os_system("echo '%s' > %s" % (keyVal, subKeyFile))
             #
             if os.path.exists(pubKeyFile) and os.path.exists(subKeyFile):
                 pub_str = readFile(pubKeyFile)
                 sub_str = readFile(subKeyFile)
                 gpgKey = pub_str + ":" + sub_str
-                os.system("echo '' > " + lockKeyFile)
+                os_system("echo '' > " + lockKeyFile)
                 print("gen gnupg ok.")
                 gpg_sendKey(pub_str)  # push to server
                 break
             else:
-                os.system("rm -rf " + lockKeyFile)
-                os.system("rm -rf " + pubKeyFile)
-                os.system("rm -rf " + subKeyFile)
+                os_system("rm -rf " + lockKeyFile)
+                os_system("rm -rf " + pubKeyFile)
+                os_system("rm -rf " + subKeyFile)
                 print("gen gnupg failed , try again.")
                 print("3.")
                 time.sleep(1)
@@ -141,14 +146,16 @@ def gpg_init(user, email, passphrase):
 #
 def git_project(workDir, git_name, git_mail, git_account, git_pwd):
     def foo():
-        os.system('git config user.name "%s"' % (git_name))
-        os.system('git config user.email %s' % (git_mail))
-        os.system('git config credential.helper store')
+        os_system('git config user.name "%s"' % (git_name))
+        os_system('git config user.email %s' % (git_mail))
+        os_system('git config credential.helper store')
         #
         creditsStr = "https://%s:%s@git.oschina.net" % (git_account, git_pwd)
-        credentialsStr = os.popen("cat ~/.git-credentials | grep '%s'" % (creditsStr)).read()
+        credentialsStr = os_popen("cat ~/.git-credentials | grep '%s'" % (creditsStr)).read()
         if credentialsStr.strip() == "" :
-            os.system('echo "%s" > ~/.git-credentials' % (creditsStr,))
+            os_system('echo "%s" > ~/.git-credentials' % (creditsStr,))
+        else:
+            print("do not write git-credentials.")
     return onPath(workDir, foo)
 #
 def git_clone(git_branch, git_repository, git_name, git_mail, git_account, git_pwd):
@@ -158,7 +165,7 @@ def git_clone(git_branch, git_repository, git_name, git_mail, git_account, git_p
     workDir = WORK_HOME + "/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S-%f")
     print("workDir at -> " + workDir)
     #
-    result = os.system('git clone --branch %s --progress -v "%s" "%s"' % (git_branch, git_repository, workDir))
+    result = os_system('git clone --branch %s --progress -v "%s" "%s"' % (git_branch, git_repository, workDir))
     if result != 0:
         print("clone error -> " + result)
         exit(result)  # exit
@@ -169,20 +176,32 @@ def git_clone(git_branch, git_repository, git_name, git_mail, git_account, git_p
 #-------------------------------------------------------------------
 #
 def mvn_config(maven_user, maven_pass):
-    ossrhStr = os.popen("cat $MAVEN_HOME/conf/settings.xml | grep '<id>ossrh</id>'").read()
+    ossrhStr = os_popen("cat $MAVEN_HOME/conf/settings.xml | grep '<id>ossrh</id>'").read()
     if ossrhStr.strip() == "" :
         print("write 'ossrh' to settings.xml")
-        os.system("sed -i '/<\/servers>/i\<server><id>ossrh</id><username>" + maven_user + "</username><password>" + maven_pass + "</password></server>' $MAVEN_HOME/conf/settings.xml")
+        os_system("sed -i '/<\/servers>/i\<server><id>ossrh</id><username>" + maven_user + "</username><password>" + maven_pass + "</password></server>' $MAVEN_HOME/conf/settings.xml")
     else:
-        print("do not config maven.")
+        print("do not write maven user.")
+    #
+    ossrhStr = os_popen("cat $MAVEN_HOME/conf/settings.xml | grep '<id>nexus-osc</id>'").read()
+    if ossrhStr.strip() == "" :
+        print("write 'mirror' to settings.xml")
+        appendStr = "<mirror><id>nexus-osc</id><mirrorOf>*</mirrorOf><name>Nexus osc</name><url>http://maven.oschina.net/content/groups/public/</url></mirror>"
+        os_system("sed -i '/<\/mirrors>/i\%s' $MAVEN_HOME/conf/settings.xml" % (appendStr))
+    else:
+        print("do not write mirror.")
 #
 def mvn_deploy(workDir, passphrase):
-    os.system("mvn clean release:clean release:prepare -P release -Dgpg.passphrase=" + passphrase)
-    os.system("mvn release:perform")
+    def foo():
+        print("mvn clean release:clean release:prepare -P release -Dgpg.passphrase=" + passphrase)
+        os.system("mvn_release.sh " + passphrase)
+        os_system("mvn release:perform")
+    return onPath(workDir, foo)
+#
+#-------------------------------------------------------------------
 #
 #
-#
-#
+#-------------------------------------------------------------------
 #
 randomUser = datetime.datetime.now().strftime("u%Y%m%d%H%M%S")
 randomMail = randomUser + "@t.hasor.net"
@@ -216,4 +235,4 @@ else:
 # env mvn_pwd=
 #
 # deploy "-git_user=zycgit" "-git_pwd=password" "-branch=master" "-repo=https://git.oschina.net/zycgit/hasor-garbage.git"
-# deploy "-git_user=zycgit" "-git_pwd=password" "-repo=https://git.oschina.net/zycgit/hasor-garbage.git”：：：
+# deploy "-git_user=zycgit" "-git_pwd=password" "-repo=https://git.oschina.net/zycgit/hasor-garbage.git”
