@@ -26,4 +26,4 @@ ENV mvn_pwd ""
 ENV branch "master"
 
 #ENTRYPOINT [ "/script/deploy.py" ]
-#CMD ["init"]
+CMD ["/bin/bash"]
