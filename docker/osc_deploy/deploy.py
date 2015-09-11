@@ -126,9 +126,10 @@ def gpg_init(user, email, passphrase):
                 os.system("rm -rf " + lockKeyFile)
                 os.system("rm -rf " + pubKeyFile)
                 os.system("rm -rf " + subKeyFile)
-                print("gen gnupg failed , try again on 3."),
+                print("gen gnupg failed , try again.")
+                print("3.")
                 time.sleep(1)
-                print("2."),
+                print("2.")
                 time.sleep(1)
                 print("1.")
                 time.sleep(1)
@@ -154,7 +155,7 @@ def git_clone(git_branch, git_repository, git_name, git_mail, git_account, git_p
     WORK_HOME = args('WORK_HOME' , None)
     if WORK_HOME == None or WORK_HOME.strip() == "" :
         WORK_HOME = os.path.expanduser('~') + "/work"
-    workDir = +"/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S-%f")
+    workDir = WORK_HOME + "/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S-%f")
     print("workDir at -> " + workDir)
     #
     result = os.system('git clone --branch %s --progress -v "%s" "%s"' % (git_branch, git_repository, workDir))
@@ -190,8 +191,8 @@ git_mail = args("mail", randomMail)
 passphrase = args("passphrase", "123456")
 git_branch = args("branch", "master")
 git_repo = args("repo", "")
-git_account = args("git_user", "master")
-git_pwd = args("git_pwd", "master")
+git_account = args("git_user", "")
+git_pwd = args("git_pwd", "")
 maven_user = args("mvn_user", "admin")
 maven_pwd = args("mvn_pwd", "")
 
