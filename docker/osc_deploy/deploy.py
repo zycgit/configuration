@@ -1,8 +1,12 @@
 #!/usr/bin/env python
+from http.server import HTTPServer,BaseHTTPRequestHandler  
+import io,shutil
 import datetime
 import os
 import sys
 import time
+#
+#-------------------------------------------------------------------
 #
 def readFile(file):
     body = ''
@@ -202,7 +206,50 @@ def mvn_deploy(workDir, passphrase):
 #
 #
 #-------------------------------------------------------------------
+class DeployServerHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        r_str="Hello World"
+        enc="UTF-8"
+        encoded = ''.join(r_str).encode(enc)
+        f = io.BytesIO()
+        f.write(encoded)
+        f.seek(0)
+        #
+        self.send_response(200)
+        self.send_header("Content-type", "text/html; charset=%s" % enc)
+        self.send_header("Content-Length", str(len(encoded)))
+        self.end_headers()
+        shutil.copyfileobj(f,self.wfile)
+    def do_GET(self):  
+        r_str="Hello World"
+        enc="UTF-8"
+        encoded = ''.join(r_str).encode(enc)
+        f = io.BytesIO()
+        f.write(encoded)
+        f.seek(0)
+        #
+        self.send_response(200)
+        self.send_header("Content-type", "text/html; charset=%s" % enc)
+        self.send_header("Content-Length", str(len(encoded)))
+        self.end_headers()
+        shutil.copyfileobj(f,self.wfile)
 #
+#
+httpd=HTTPServer(('',8080),DeployServerHandler)
+print("Server started on 127.0.0.1,port 8080.....")
+httpd.serve_forever()
+#
+
+
+
+
+
+
+
+
+
+
+
 randomUser = datetime.datetime.now().strftime("u%Y%m%d%H%M%S")
 randomMail = randomUser + "@t.hasor.net"
 git_name = args("user", randomUser)
