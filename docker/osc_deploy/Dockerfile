@@ -4,6 +4,7 @@ MAINTAINER ZhaoYongChun "zyc@hasor.net"
 # install
 RUN apt-get update && apt-get install -y --no-install-recommends \
                 gnupg \
+                gnupg2 \
                 expect \
                 git \
         && rm -rf /var/lib/apt/lists/* \
