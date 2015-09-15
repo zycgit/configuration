@@ -1,10 +1,8 @@
 #!/usr/bin/env python
-from http.server import HTTPServer,BaseHTTPRequestHandler  
-import io,shutil
-import datetime
-import os
-import sys
-import time
+import datetime, time
+from http.server import HTTPServer, BaseHTTPRequestHandler  
+import io, shutil , urllib
+import os, sys
 #
 #-------------------------------------------------------------------
 #
@@ -37,7 +35,7 @@ def args(name, defaultVal):
     result = None
     for i in range(1, argvLen):
         val = sys.argv[i]
-        if val.startswith('-' + name):
+        if val.startswith("-" + name):
             index = val.find("=")
             if index > 0:
                 val = val[index + 1:]
@@ -47,6 +45,11 @@ def args(name, defaultVal):
     if result == None or result.strip() == "":
         result = defaultVal
     return result
+#
+def chooseVal(val_a, val_b):
+    if val_a == None or val_a == "" :
+        return val_b
+    return val_a
 #
 #-------------------------------------------------------------------
 #
@@ -89,10 +92,10 @@ def gpg_sendKey(keyVal):
     return gpg_inKey(keyVal, foo)
 #
 def gpg_init(user, email, passphrase):
-    gpgKey = ''
-    lockKeyFile = '/script/key.lock'
-    pubKeyFile = '/script/key.pub'
-    subKeyFile = '/script/key.sub'
+    gpgKey = ""
+    lockKeyFile = "/script/key.lock"
+    pubKeyFile = "/script/key.pub"
+    subKeyFile = "/script/key.sub"
     if os.path.exists("/script") == False:
         os.makedirs(r"/script")
     if os.path.exists(lockKeyFile) :
@@ -116,7 +119,7 @@ def gpg_init(user, email, passphrase):
             os_system("rm -rf ~/.gnupg/random_seed")
             print("process result...")
             for line in execLines :
-                if line.startswith('pub   '):
+                if line.startswith("pub   "):
                     keyVal = line.split("/")[1].split(" ")[0]
                     os_system("echo '%s' > %s" % (keyVal, pubKeyFile))
                 elif line.startswith('sub   '):
@@ -163,9 +166,9 @@ def git_project(workDir, git_name, git_mail, git_account, git_pwd):
     return onPath(workDir, foo)
 #
 def git_clone(git_branch, git_repository, git_name, git_mail, git_account, git_pwd):
-    WORK_HOME = args('WORK_HOME' , None)
+    WORK_HOME = args("WORK_HOME" , None)
     if WORK_HOME == None or WORK_HOME.strip() == "" :
-        WORK_HOME = os.path.expanduser('~') + "/work"
+        WORK_HOME = os.path.expanduser("~") + "/work"
     workDir = WORK_HOME + "/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S-%f")
     print("workDir at -> " + workDir)
     #
@@ -176,6 +179,13 @@ def git_clone(git_branch, git_repository, git_name, git_mail, git_account, git_p
     #
     git_project(workDir, git_name, git_mail, git_account, git_pwd)
     return workDir
+#
+def git_userInfo():
+    randomUser = datetime.datetime.now().strftime("u%Y%m%d%H%M%S")
+    randomMail = randomUser + "@t.hasor.net"
+    git_name = args("user", randomUser)
+    git_mail = args("mail", randomMail)
+    return {"user":git_name, "mail":git_mail}
 #
 #-------------------------------------------------------------------
 #
@@ -204,73 +214,115 @@ def mvn_deploy(workDir, passphrase):
 #
 #-------------------------------------------------------------------
 #
+def runServer():
+    class DeployServerHandler(BaseHTTPRequestHandler):
+        def writeHTML(self, enc):
+            userInfo = git_userInfo()
+            git_name = userInfo["user"]
+            git_mail = userInfo["mail"]
+            git_branch = args("branch", "master")
+            htmlBody = '\
+<html>\
+<style type="text/css">\
+label { display: block; padding: 3px 3px }\
+span  { display: block; float:left; width: 100px;}\
+input { display: block; flout:left; width: 80%%;}\
+</style>\
+<form action="/request.do" method="GET">\
+<label><span>mvn_user:</span><input id="mvn_user" name="mvn_user" type="text" value=""/></label>\
+<label><span>mvn_pwd:</span><input id="mvn_pwd" name="mvn_pwd" type="text" value=""/></label>\
+<hr/>\
+<label><span>git_name:</span><input id="git_name" name="git_name" type="text" value="%s"/></label>\
+<label><span>git_mail:</span><input id="git_mail" name="git_mail" type="text" value="%s"/></label>\
+<label><span>git_user:</span><input id="git_user" name="git_user" type="text" value=""/></label>\
+<label><span>git_pwd:</span><input id="git_pwd" name="git_pwd" type="text" value=""/></label>\
+<hr/>\
+<label><span>git_repo:</span><input id="git_repo" name="git_repo" type="text" value=""/></label>\
+<label><span>git_branch:</span><input id="git_branch" name="git_branch" type="text" value="%s"/></label>\
+<hr />\
+<input type="submit" value="deploy">\
+</form></html>' % (git_name, git_mail, git_branch)
+            return "".join(htmlBody).encode(enc)
+        #
+        def do_POST(self):
+            do_GET(self)
+        #
+        def do_GET(self):
+            if self.path == "/favicon.ico":
+                return
+            enc = "UTF-8"
+            requestURI = self.path.split("?")[0]
+            queryString = self.path.split("?")[1]
+            if requestURI == "/request.do"  :
+                params = urllib.parse.parse_qs(queryString)     
+                userInfo = git_userInfo()
+                exeArgs = {}
+                exeArgs["user"] = chooseVal(params["git_name"][0], args("git_name", userInfo["user"]))
+                exeArgs["mail"] = chooseVal(params["git_mail"][0], args("git_mail", userInfo["mail"]))
+                exeArgs["mvn_user"] = chooseVal(params["mvn_user"][0], args("mvn_user", "admin"))
+                exeArgs["mvn_pwd"] = chooseVal(params["mvn_pwd"][0], args("mvn_pwd", ""))
+                exeArgs["git_user"] = chooseVal(params["git_user"][0], "")
+                exeArgs["git_pwd"] = chooseVal(params["git_pwd"][0], "")
+                exeArgs["repo"] = chooseVal(params["git_repo"][0], "")
+                exeArgs["branch"] = chooseVal(params["git_branch"][0], args("branch", "master"))
+                shellArgs = ""
+                for arg in exeArgs:
+                    shellArgs = shellArgs + ' -%s="%s"' % (arg, exeArgs[arg])
+                shellPath = os.path.split(os.path.realpath(__file__))[0]
+                exe = os_popen("%s/deploy.py deploy %s" % (shellPath, shellArgs))
+                #
+                self.send_response(200)
+                self.send_header("Content-type", "text/html; charset=%s" % enc)
+                self.end_headers()
+                #
+                for line in exe:
+                    self.wfile.write((line + "<br>").encode())
+                #
+            elif requestURI == "/status.do":
+                return
+            else:
+                encoded = self.writeHTML(enc)
+                f = io.BytesIO()
+                f.write(encoded)
+                f.seek(0)
+                self.send_response(200)
+                self.send_header("Content-type", "text/html; charset=%s" % enc)
+                self.send_header("Content-Length", str(len(encoded)))
+                self.end_headers()
+                shutil.copyfileobj(f, self.wfile)
+                return
+    #
+    httpd = HTTPServer(("", 8080), DeployServerHandler)
+    print("deploy Server started on 127.0.0.1,port 8080.....")
+    httpd.serve_forever()
 #
 #-------------------------------------------------------------------
-class DeployServerHandler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        r_str="Hello World"
-        enc="UTF-8"
-        encoded = ''.join(r_str).encode(enc)
-        f = io.BytesIO()
-        f.write(encoded)
-        f.seek(0)
-        #
-        self.send_response(200)
-        self.send_header("Content-type", "text/html; charset=%s" % enc)
-        self.send_header("Content-Length", str(len(encoded)))
-        self.end_headers()
-        shutil.copyfileobj(f,self.wfile)
-    def do_GET(self):  
-        r_str="Hello World"
-        enc="UTF-8"
-        encoded = ''.join(r_str).encode(enc)
-        f = io.BytesIO()
-        f.write(encoded)
-        f.seek(0)
-        #
-        self.send_response(200)
-        self.send_header("Content-type", "text/html; charset=%s" % enc)
-        self.send_header("Content-Length", str(len(encoded)))
-        self.end_headers()
-        shutil.copyfileobj(f,self.wfile)
 #
-#
-httpd=HTTPServer(('',8080),DeployServerHandler)
-print("Server started on 127.0.0.1,port 8080.....")
-httpd.serve_forever()
-#
-
-
-
-
-
-
-
-
-
-
-
-randomUser = datetime.datetime.now().strftime("u%Y%m%d%H%M%S")
-randomMail = randomUser + "@t.hasor.net"
-git_name = args("user", randomUser)
-git_mail = args("mail", randomMail)
-passphrase = args("passphrase", "123456")
-git_branch = args("branch", "master")
-git_repo = args("repo", "")
-git_account = args("git_user", "")
-git_pwd = args("git_pwd", "")
-maven_user = args("mvn_user", "admin")
-maven_pwd = args("mvn_pwd", "")
-
 if sys.argv[1] == "init":
-    gpg_init(randomUser, randomMail, passphrase)
+    userInfo = git_userInfo()
+    git_name = userInfo["user"]
+    git_mail = userInfo["mail"]
+    passphrase = args("passphrase", "123456")
+    gpg_init(git_name, git_mail, passphrase)
     print("init finish.")
 elif sys.argv[1] == "deploy":
-    gpg_init(randomUser, randomMail, passphrase)
+    userInfo = git_userInfo()
+    git_name = userInfo["user"]
+    git_mail = userInfo["mail"]
+    passphrase = args("passphrase", "123456")
+    git_branch = args("branch", "master")
+    git_repo = args("repo", "")
+    git_account = args("git_user", "")
+    git_pwd = args("git_pwd", "")
+    maven_user = args("mvn_user", "admin")
+    maven_pwd = args("mvn_pwd", "")
+    gpg_init(git_name, git_mail, passphrase)
     workDir = git_clone(git_branch , git_repo, git_name, git_mail, git_account, git_pwd)
     mvn_config(maven_user, maven_pwd)
     mvn_deploy(workDir, passphrase)
     print("deploy finish.")
+elif sys.argv[1] == "server":
+    runServer()
 else:
     print("args error.")
 #
