@@ -19,7 +19,8 @@ ADD . /usr/share/deployScript
 RUN ln -s /usr/share/deployScript /script \
         && chmod 755 /script/*.sh \
         && chmod 755 /script/*.py \
-        && ln -s /script/deploy.py /usr/bin/deploy
+        && ln -s /script/deploy.py /usr/bin/deploy \
+        && pip install pexpect
 
 ENV passphrase "123456"
 ENV mvn_user "admin"
