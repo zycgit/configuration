@@ -5,7 +5,6 @@ MAINTAINER ZhaoYongChun "zyc@hasor.net"
 RUN apt-get update && apt-get install -y --no-install-recommends \
                 gnupg \
                 gnupg2 \
-                expect \
                 git \
         && rm -rf /var/lib/apt/lists/* \
         && rm -rf ~/.gnupg/
@@ -17,7 +16,6 @@ ENV WORK_HOME /work
 # script
 ADD . /usr/share/deployScript
 RUN ln -s /usr/share/deployScript /script \
-        && chmod 755 /script/*.sh \
         && chmod 755 /script/*.py \
         && ln -s /script/deploy.py /usr/bin/deploy \
         && pip install pexpect

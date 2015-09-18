@@ -172,7 +172,7 @@
 							<autoVersionSubmodules>true</autoVersionSubmodules>
 							<useReleaseProfile>false</useReleaseProfile>
 							<releaseProfiles>release</releaseProfiles>
-							<tagNameFormat>Release.Hasor-</tagNameFormat>
+							<tagNameFormat>Release.Hasor-@{project.version}</tagNameFormat>
 							<goals>deploy</goals>
 						</configuration>
 					</plugin>
