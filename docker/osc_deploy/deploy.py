@@ -228,20 +228,21 @@ def gpg_init(userName, userEmail, passphrase):
 #
 #-------------------------------------------------------------------
 #
-# 测试当前“id_rsa.pub”储存的钥匙是不是指定email的。
-#   - 返回形式：(公钥字符串)，失败返回 None
-def ssh_pub(git_mail):
-    rsaPub = os_popen("cat ~/.ssh/id_rsa.pub").read()
-    if rsaPub.strip().endswith(git_mail):
-        return rsaPub
+# 获取当前ssh公钥“id_rsa.pub”储存的内容。
+#   - 返回形式：{email:xxxx , pubKey: xxxx}，失败返回 None
+def ssh_pub():
+    rsapub = os_popen("cat ~/.ssh/id_rsa.pub").read()
+    rsapubSplit = rsapub.strip().split(" ")
+    if len(rsapubSplit) == 2:
+        return {"pubKey":rsapubSplit[0], "email":rsapubSplit[1]}
     else:
         return None
 #
 # 生成公钥和私钥。
-#   - 返回：公钥字符串
+#   - 返回形式：{email:xxxx , pubKey: xxxx}，失败返回 None
 def ssh_gen(git_mail, passphrase):
-    sshKey = ssh_pub(git_mail)
-    if sshKey != None:
+    sshKey = ssh_pub()
+    if sshKey != None and sshKey["email"] == git_mail:
         print("ssh key form local.")
         return sshKey
     # gen sshkey
@@ -280,7 +281,7 @@ def ssh_gen(git_mail, passphrase):
         print("ssh-keygen failed.")
         return None;
     #
-    return ssh_pub(git_mail)
+    return ssh_pub()
 #
 # 生成公钥和私钥。例子：git@git.oschina.net
 #   - 返回形式：True or False
@@ -362,10 +363,6 @@ def mvn_deploy(maven_user, maven_password, workDir, passphrase, git_mail, sshHos
         if ssh_test(sshHost, passphrase) == False:
             print("ssh -T %s , test failed." % (sshHost))
             print("Please add the public key to %s" % (sshHost))
-            keyPub = ssh_gen(git_mail, passphrase)
-            print("-------------")
-            print(keyPub)
-            print("-------------")
             return 1
         # deploy
         cmdStr = "mvn clean release:clean release:prepare -P release -Dgpg.passphrase=" + passphrase
@@ -422,11 +419,14 @@ def run_genUserInfo():
 #
 def run_server(server_port):
     class DeployServerHandler(BaseHTTPRequestHandler):
+        
+        
+        
         def writeHTML(self, enc):
             userInfo = run_genUserInfo()
             radnomUserName = userInfo["user"]
             radnomUserMail = userInfo["mail"]
-            git_name = args(ARG_KEY_GIT_NAME, radnomUserMail)
+            git_name = args(ARG_KEY_GIT_NAME, radnomUserName)
             git_mail = args(ARG_KEY_GIT_MAIL, radnomUserMail)
             git_branch = args(ARG_KEY_GIT_BRANCH, "master")
             git_user = args(ARG_KEY_GIT_USER)
@@ -437,11 +437,11 @@ def run_server(server_port):
             maven_password = args(ARG_KEY_MAVEN_PASSWORD)
             passphrase = args(ARG_KEY_GIT_PASSPHRASE, "123456")
             if ssh_test(ssh_host, passphrase) == False:
-                bodyStr = "<div>SSH Public Key<hr/>%s</div>" % (ssh_gen(git_mail, passphrase))
+                sshKey = ssh_pub() 
+                if sshKey == None:
+                    sshKey = ssh_gen(git_mail, passphrase)
+                bodyStr = "<div>SSH Public Key<hr/>%s</div>" % (sshKey["pubKey"])
             else:
-                bodyStr = ""
-            # ssh OK
-            if ssh_test(ssh_host, passphrase) == True:
                 bodyStr = '\
 <form action="/request.do" method="GET">\
 <label><span>mvn_user:</span><input id="' + ARG_KEY_MAVEN_USER + '" name="' + ARG_KEY_MAVEN_USER + '" type="text" value="' + maven_user + '"/></label>\
@@ -490,7 +490,7 @@ input { display: block; flout:left; width: 80%%;}\
                 radnomUserName = userInfo["user"]
                 radnomUserMail = userInfo["mail"]
                 exeArgs = {}
-                exeArgs[ARG_KEY_GIT_NAME] = chooseVal(params[ARG_KEY_GIT_NAME][0], args(ARG_KEY_GIT_NAME, radnomUserMail))
+                exeArgs[ARG_KEY_GIT_NAME] = chooseVal(params[ARG_KEY_GIT_NAME][0], args(ARG_KEY_GIT_NAME, radnomUserName))
                 exeArgs[ARG_KEY_GIT_MAIL] = chooseVal(params[ARG_KEY_GIT_MAIL][0], args(ARG_KEY_GIT_MAIL, radnomUserMail))
                 exeArgs[ARG_KEY_GIT_USER] = chooseVal(params[ARG_KEY_GIT_USER][0], args(ARG_KEY_GIT_USER))
                 exeArgs[ARG_KEY_GIT_PASSWORD] = chooseVal(params[ARG_KEY_GIT_PASSWORD][0], args(ARG_KEY_GIT_PASSWORD))
@@ -555,7 +555,7 @@ if sys.argv[1] == "deploy":
     userInfo = run_genUserInfo()
     radnomUserName = userInfo["user"]
     radnomUserMail = userInfo["mail"]
-    git_name = args(ARG_KEY_GIT_NAME, radnomUserMail)
+    git_name = args(ARG_KEY_GIT_NAME, radnomUserName)
     git_mail = args(ARG_KEY_GIT_MAIL, radnomUserMail)
     passphrase = args(ARG_KEY_GIT_PASSPHRASE, "123456")
     git_user = args(ARG_KEY_GIT_USER)
