@@ -234,7 +234,7 @@ def ssh_pub():
     rsapub = os_popen("cat ~/.ssh/id_rsa.pub").read()
     rsapubSplit = rsapub.strip().split(" ")
     if len(rsapubSplit) == 2:
-        return {"pubKey":rsapubSplit[0], "email":rsapubSplit[1]}
+        return {"pubKey":rsapub, "email":rsapubSplit[2]}
     else:
         return None
 #
@@ -410,6 +410,7 @@ def mvn_deploy(maven_user, maven_password, workDir, passphrase, git_mail, sshHos
 #
 #-------------------------------------------------------------------
 #
+# -生成随机用户和email
 def run_genUserInfo():
     randomUser = datetime.datetime.now().strftime("u%Y%m%d%H%M%S")
     randomMail = randomUser + "@t.hasor.net"
@@ -417,57 +418,63 @@ def run_genUserInfo():
     git_mail = args("mail", randomMail)
     return {"user":git_name, "mail":git_mail}
 #
-def run_server(server_port):
-    class DeployServerHandler(BaseHTTPRequestHandler):
-        
-        
-        
-        def writeHTML(self, enc):
-            userInfo = run_genUserInfo()
-            radnomUserName = userInfo["user"]
-            radnomUserMail = userInfo["mail"]
-            git_name = args(ARG_KEY_GIT_NAME, radnomUserName)
-            git_mail = args(ARG_KEY_GIT_MAIL, radnomUserMail)
-            git_branch = args(ARG_KEY_GIT_BRANCH, "master")
-            git_user = args(ARG_KEY_GIT_USER)
-            git_password = args(ARG_KEY_GIT_PASSWORD)
-            git_repository = args(ARG_KEY_GIT_REPOSITORY)
-            ssh_host = args(ARG_KEY_GIT_SSH_HOST)
-            maven_user = args(ARG_KEY_MAVEN_USER, "admin")
-            maven_password = args(ARG_KEY_MAVEN_PASSWORD)
-            passphrase = args(ARG_KEY_GIT_PASSPHRASE, "123456")
-            if ssh_test(ssh_host, passphrase) == False:
-                sshKey = ssh_pub() 
-                if sshKey == None:
-                    sshKey = ssh_gen(git_mail, passphrase)
-                bodyStr = "<div>SSH Public Key<hr/>%s</div>" % (sshKey["pubKey"])
-            else:
-                bodyStr = '\
+# －检测ssh连通性并返回相应的html代码。
+def run_configSSH():
+    ssh_host = args(ARG_KEY_GIT_SSH_HOST)
+    passphrase = args(ARG_KEY_GIT_PASSPHRASE, "123456")
+    git_mail = args(ARG_KEY_GIT_MAIL, run_genUserInfo()["mail"])
+    sshKey = ssh_pub()
+    if sshKey == None:
+        sshKey = ssh_gen(git_mail, passphrase)
+    if ssh_test(ssh_host, passphrase) == False:
+        bodyStr = '<form action="#" method="GET">\
+<div>(status:no, please add public key) SSH Public Key<hr/>%s</div>\
+<hr />\
+<label><span>ssh_mail:</span><input name="ssh_mail" type="text" value="' + sshKey["email"] + '"/></label>\
+<label><span>ssh_host:</span><input name="' + ARG_KEY_GIT_SSH_HOST + '" type="text" value="' + ssh_host + '"/></label>\
+<input type="submit" value="resetSSH">\
+</form>' % (sshKey["pubKey"])
+        return {"html":bodyStr, "result":False}
+    else:
+        bodyStr = "<div>(status:ok) SSH Public Key <hr/>%s</div>" % (sshKey["pubKey"])
+        return {"html":bodyStr, "result":True}
+#
+# －deploy的form代码。
+def run_deployForm():
+    maven_user = args(ARG_KEY_MAVEN_USER, "admin")
+    maven_password = args(ARG_KEY_MAVEN_PASSWORD)
+    git_user = args(ARG_KEY_GIT_USER)
+    git_password = args(ARG_KEY_GIT_PASSWORD)
+    git_branch = args(ARG_KEY_GIT_BRANCH, "master")
+    git_repository = args(ARG_KEY_GIT_REPOSITORY)
+    sshKey = ssh_pub()
+    bodyStr = '\
 <form action="/request.do" method="GET">\
-<label><span>mvn_user:</span><input id="' + ARG_KEY_MAVEN_USER + '" name="' + ARG_KEY_MAVEN_USER + '" type="text" value="' + maven_user + '"/></label>\
-<label><span>mvn_pwd:</span><input id="' + ARG_KEY_MAVEN_PASSWORD + '" name="' + ARG_KEY_MAVEN_PASSWORD + '" type="text" value="' + maven_password + '"/></label>\
+<label><span>mvn_user:</span><input name="mvn_user" type="text" value="' + maven_user + '"/></label>\
+<label><span>mvn_pwd:</span><input name="mvn_pwd" type="text" value="' + maven_password + '"/></label>\
 <hr/>\
-<label><span>git_name:</span><input id="' + ARG_KEY_GIT_NAME + '" name="' + ARG_KEY_GIT_NAME + '" type="text" value="' + git_name + '"/></label>\
-<label><span>git_mail:</span><input id="' + ARG_KEY_GIT_MAIL + '" name="' + ARG_KEY_GIT_MAIL + '" type="text" value="' + git_mail + '"/></label>\
-<label><span>git_user:</span><input id="' + ARG_KEY_GIT_USER + '" name="' + ARG_KEY_GIT_USER + '" type="text" value="' + git_user + '"/></label>\
-<label><span>git_pwd:</span><input id="' + ARG_KEY_GIT_PASSWORD + '" name="' + ARG_KEY_GIT_PASSWORD + '" type="text" value="' + git_password + '"/></label>\
+<label><span>git_name:</span>' + sshKey["email"].split("@")[0] + '</label>\
+<label><span>git_mail:</span>' + sshKey["email"] + '</label>\
+<label><span>git_user:</span><input name="' + ARG_KEY_GIT_USER + '" type="text" value="' + git_user + '"/></label>\
+<label><span>git_pwd:</span><input name="' + ARG_KEY_GIT_PASSWORD + '" type="text" value="' + git_password + '"/></label>\
 <hr/>\
-<label><span>git_repo:</span><input id="' + ARG_KEY_GIT_REPOSITORY + '" name="' + ARG_KEY_GIT_REPOSITORY + '" type="text" value="' + git_repository + '"/></label>\
-<label><span>git_branch:</span><input id="' + ARG_KEY_GIT_BRANCH + '" name="' + ARG_KEY_GIT_BRANCH + '" type="text" value="' + git_branch + '"/></label>\
-<label><span>ssh_host:</span><input id="' + ARG_KEY_GIT_SSH_HOST + '" name="' + ARG_KEY_GIT_SSH_HOST + '" type="text" value="' + ssh_host + '"/></label>\
+<label><span>git_branch:</span><input name="' + ARG_KEY_GIT_BRANCH + '" type="text" value="' + git_branch + '"/></label>\
+<label><span>git_repo:</span><input name="' + ARG_KEY_GIT_REPOSITORY + '" type="text" value="' + git_repository + '"/></label>\
 <hr />\
 <input type="submit" value="deploy">\
 </form>'
-            #
+    return bodyStr
+#
+def run_server(server_port):
+    class DeployServerHandler(BaseHTTPRequestHandler):
+        def writeHTML(self, enc):
             htmlBody = '\
 <html>\
 <style type="text/css">\
 label { display: block; padding: 3px 3px }\
 span  { display: block; float:left; width: 100px;}\
 input { display: block; flout:left; width: 80%%;}\
-</style>\
-%s\
-</html>' % (bodyStr)
+</style>' + run_configSSH() + "<hr/>" + run_deployForm() + '</html>'
             return "".join(htmlBody).encode(enc)
         #---------------------------------------------------------------------------------
         def do_POST(self):
