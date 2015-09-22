@@ -20,10 +20,14 @@ RUN ln -s /usr/share/deployScript /script \
         && ln -s /script/deploy.py /usr/bin/deploy \
         && pip install pexpect
 
-ENV passphrase "123456"
 ENV mvn_user "admin"
 ENV mvn_pwd ""
+ENV user "deployUser"
+ENV mail "deployUser@hasor.net"
+
+ENV passphrase "123456"
 ENV branch "master"
+ENV ssh_host "git@git.oschina.net"
 
 #ENTRYPOINT [ "/script/deploy.py" ]
 CMD ["/bin/bash"]

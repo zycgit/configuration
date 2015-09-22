@@ -234,6 +234,7 @@ def ssh_pub():
     rsapub = os_popen("cat ~/.ssh/id_rsa.pub").read()
     rsapubSplit = rsapub.strip().split(" ")
     if len(rsapubSplit) == 2:
+        print("public key of email %s" + rsapubSplit[2])
         return {"pubKey":rsapub, "email":rsapubSplit[2]}
     else:
         return None
@@ -308,7 +309,8 @@ def ssh_test(sshHost, passphrase):
         elif index == 2 or index == 3 or index == 4 or index == 5:
             print("\nplease add the public key.")
             exeStatus = False
-            break
+            if index != 5:
+                break
     if child.isalive():
         print("ssh process kill.")
         child.close(force=True)
@@ -428,12 +430,13 @@ def run_configSSH():
         sshKey = ssh_gen(git_mail, passphrase)
     if ssh_test(ssh_host, passphrase) == False:
         bodyStr = '<form action="#" method="GET">\
-<div>(status:no, please add public key) SSH Public Key<hr/>%s</div>\
-<hr />\
+<div>(status:no, please add public key) SSH Public Key<hr/>' + sshKey["pubKey"] + '</div>\
 <label><span>ssh_mail:</span><input name="ssh_mail" type="text" value="' + sshKey["email"] + '"/></label>\
 <label><span>ssh_host:</span><input name="' + ARG_KEY_GIT_SSH_HOST + '" type="text" value="' + ssh_host + '"/></label>\
+<hr />\
 <input type="submit" value="resetSSH">\
-</form>' % (sshKey["pubKey"])
+</form>'
+
         return {"html":bodyStr, "result":False}
     else:
         bodyStr = "<div>(status:ok) SSH Public Key <hr/>%s</div>" % (sshKey["pubKey"])
@@ -468,17 +471,19 @@ def run_deployForm():
 def run_server(server_port):
     class DeployServerHandler(BaseHTTPRequestHandler):
         def writeHTML(self, enc):
-            htmlBody = '\
-<html>\
-<style type="text/css">\
-label { display: block; padding: 3px 3px }\
-span  { display: block; float:left; width: 100px;}\
-input { display: block; flout:left; width: 80%%;}\
-</style>' + run_configSSH() + "<hr/>" + run_deployForm() + '</html>'
+            htmlBody = run_configSSH()["html"]
+#            htmlBody = '<html>\
+#<style type="text/css">\
+#label { display: block; padding: 3px 3px }\
+#span  { display: block; float:left; width: 100px;}\
+#input { display: block; flout:left; width: 80%%;}\
+#</style>' + run_configSSH()["html"] + '<hr/>' + run_deployForm() + '</html>'
             return "".join(htmlBody).encode(enc)
+        #
         #---------------------------------------------------------------------------------
         def do_POST(self):
             do_GET(self)
+        #
         #---------------------------------------------------------------------------------
         def do_GET(self):
             if self.path == "/favicon.ico":
