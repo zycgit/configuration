@@ -231,9 +231,11 @@ def gpg_init(userName, userEmail, passphrase):
 # 获取当前ssh公钥“id_rsa.pub”储存的内容。
 #   - 返回形式：{email:xxxx , pubKey: xxxx}，失败返回 None
 def ssh_pub():
-    rsapub = os_popen("cat ~/.ssh/id_rsa.pub").read()
+    ssh_pub_file = os.path.expanduser('~') + '/.ssh/id_rsa.pub'
+    rsapub = readFile(ssh_pub_file)
+    print(rsapub)
     rsapubSplit = rsapub.strip().split(" ")
-    if len(rsapubSplit) == 2:
+    if len(rsapubSplit) >= 2:
         print("public key of email %s" + rsapubSplit[2])
         return {"pubKey":rsapub, "email":rsapubSplit[2]}
     else:
@@ -429,18 +431,17 @@ def run_configSSH():
     if sshKey == None:
         sshKey = ssh_gen(git_mail, passphrase)
     if ssh_test(ssh_host, passphrase) == False:
-        bodyStr = '<form action="#" method="GET">\
+        bodyStr = '<form action="/setssh.do" method="GET">\
 <div>(status:no, please add public key) SSH Public Key<hr/>' + sshKey["pubKey"] + '</div>\
 <label><span>ssh_mail:</span><input name="ssh_mail" type="text" value="' + sshKey["email"] + '"/></label>\
-<label><span>ssh_host:</span><input name="' + ARG_KEY_GIT_SSH_HOST + '" type="text" value="' + ssh_host + '"/></label>\
+<label><span>ssh_host:</span><input name="ssh_host" type="text" value="' + ssh_host + '"/></label>\
 <hr />\
-<input type="submit" value="resetSSH">\
+<input type="submit" value="reset ssh config">\
 </form>'
-
-        return {"html":bodyStr, "result":False}
+        return {"html":bodyStr, "result":"False"}
     else:
         bodyStr = "<div>(status:ok) SSH Public Key <hr/>%s</div>" % (sshKey["pubKey"])
-        return {"html":bodyStr, "result":True}
+        return {"html":bodyStr, "result":"True"}
 #
 # －deploy的form代码。
 def run_deployForm():
@@ -471,13 +472,12 @@ def run_deployForm():
 def run_server(server_port):
     class DeployServerHandler(BaseHTTPRequestHandler):
         def writeHTML(self, enc):
-            htmlBody = run_configSSH()["html"]
-#            htmlBody = '<html>\
-#<style type="text/css">\
-#label { display: block; padding: 3px 3px }\
-#span  { display: block; float:left; width: 100px;}\
-#input { display: block; flout:left; width: 80%%;}\
-#</style>' + run_configSSH()["html"] + '<hr/>' + run_deployForm() + '</html>'
+            htmlBody = '<html>\
+ <style type="text/css">\
+ label { display: block; padding: 3px 3px }\
+ span  { display: block; float:left; width: 100px;}\
+ input { display: block; flout:left; width: 80%%;}\
+ </style>' + run_configSSH()["html"] + '<hr/>' + run_deployForm() + '</html>'
             return "".join(htmlBody).encode(enc)
         #
         #---------------------------------------------------------------------------------
@@ -495,9 +495,20 @@ def run_server(server_port):
             if len(arrayData) > 1:
                 requestURI = arrayData[0]
                 queryString = arrayData[1]
+            params = urllib.parse.parse_qs(queryString)
+            responseData = ""
+            #
+            # -重新设定ssh
+            if requestURI == "/setssh.do"  :
+                ssh_host = chooseVal(params["ssh_host"][0], args(ARG_KEY_GIT_SSH_HOST))
+                git_mail = chooseVal(params["ssh_mail"][0], args(ARG_KEY_GIT_MAIL, run_genUserInfo()["mail"]))
+                passphrase = args(ARG_KEY_GIT_PASSPHRASE, "123456")
+                sshKey = ssh_pub()
+                if sshKey == None or sshKey["email"] != git_mail:
+                    sshKey = ssh_gen(git_mail, passphrase)
+                responseData = self.writeHTML("UTF-8")
             #
             if requestURI == "/request.do"  :
-                params = urllib.parse.parse_qs(queryString)
                 userInfo = run_genUserInfo()
                 radnomUserName = userInfo["user"]
                 radnomUserMail = userInfo["mail"]
