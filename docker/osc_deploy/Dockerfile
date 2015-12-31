@@ -19,6 +19,7 @@ RUN ln -s /usr/share/deployScript /script \
         && chmod 755 /script/*.py \
         && ln -s /script/deploy.py /usr/bin/deploy \
         && pip install pexpect
+        && cp $MAVEN_HOME/conf/settings.xml $MAVEN_HOME/conf/settings.xml.bak
 
 ENV mvn_user "admin"
 ENV mvn_pwd ""

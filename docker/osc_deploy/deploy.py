@@ -5,34 +5,8 @@ import io, shutil , urllib, cgi
 import os, sys, pexpect, threading
 #
 #
-global ARG_KEY_GIT_NAME
-global ARG_KEY_GIT_MAIL
-global ARG_KEY_GIT_PASSPHRASE
-global ARG_KEY_GIT_USER
-global ARG_KEY_GIT_PASSWORD
-global ARG_KEY_GIT_BRANCH
-global ARG_KEY_GIT_REPOSITORY
-global ARG_KEY_GIT_SSH_HOST
-global ARG_KEY_MAVEN_USER
-global ARG_KEY_MAVEN_PASSWORD
-global ARG_KEY_GIT_WORK_HOME
-global ARG_KEY_SERVER_PORT
-ARG_KEY_GIT_NAME = "name"
-ARG_KEY_GIT_MAIL = "mail"
-ARG_KEY_GIT_PASSPHRASE = "passphrase"
-ARG_KEY_GIT_USER = "user"
-ARG_KEY_GIT_PASSWORD = "pwd"
-ARG_KEY_GIT_BRANCH = "branch"
-ARG_KEY_GIT_REPOSITORY = "repo"
-ARG_KEY_GIT_SSH_HOST = "ssh_host"
-ARG_KEY_MAVEN_USER = "mvn_user"
-ARG_KEY_MAVEN_PASSWORD = "mvn_pwd"
-ARG_KEY_GIT_WORK_HOME = "WORK_HOME"
-ARG_KEY_SERVER_PORT = "port"
 #
 #-------------------------------------------------------------------
-#
-# - 写入文件（追加）
 def writeFile(file, lines):
     fileObj = open(file, "a")
     try :
@@ -41,13 +15,16 @@ def writeFile(file, lines):
         fileObj.close()
 # - 读取文件所有内容
 def readFile(file):
-    print("reading file ->" + file)
     body = ''
+    if os.path.exists(file):
+    print("reading file ->" + file)
     fileObj = open(file)
     try :
         body = fileObj.read()
     finally:
         fileObj.close()
+    else:
+        print("file is not exists ->" + file)
     return body.strip()
 #
 # - 调用“os.system”
@@ -236,7 +213,7 @@ def ssh_pub():
     print(rsapub)
     rsapubSplit = rsapub.strip().split(" ")
     if len(rsapubSplit) >= 2:
-        print("public key of email %s" + rsapubSplit[2])
+        print("public key of email " + rsapubSplit[2])
         return {"pubKey":rsapub, "email":rsapubSplit[2]}
     else:
         return None
@@ -294,6 +271,7 @@ def ssh_test(sshHost, passphrase):
     child = pexpect.spawnu(cmdStr)
     child.logfile = sys.stdout
     child.delaybeforesend = 0.1
+    child.timeout = 10
     expectList = ["Enter passphrase for key",
                 "Welcome to",
                 "Are you sure you want to continue connecting (yes/no)?",
@@ -308,7 +286,9 @@ def ssh_test(sshHost, passphrase):
         elif index == 1:
             exeStatus = True
             break
-        elif index == 2 or index == 3 or index == 4 or index == 5:
+        elif index == 2:
+            child.sendline("yes")
+        elif index == 3 or index == 4 or index == 5:
             print("\nplease add the public key.")
             exeStatus = False
             if index != 5:
@@ -338,6 +318,8 @@ def git_clone(git_workDir, git_branch, git_repository, git_name, git_mail, git_u
     os_system('git config --global user.email %s' % (git_mail))
     return workDir
 #
+#
+# 配置mvn
 #
 def mvn_deploy(maven_user, maven_password, workDir, passphrase, git_mail, sshHost):
     # server
@@ -412,6 +394,40 @@ def mvn_deploy(maven_user, maven_password, workDir, passphrase, git_mail, sshHos
     return os_onpath(workDir, deploy)
 #
 #-------------------------------------------------------------------
+#
+# -生成随机用户和email
+#
+#
+#
+global ARG_KEY_GIT_PASSPHRASE
+global ARG_KEY_MAVEN_USER
+global ARG_KEY_MAVEN_PASSWORD
+global ARG_KEY_GIT_SSH_HOST
+global ARG_KEY_GIT_WORK_HOME
+global ARG_KEY_SERVER_PORT
+ARG_KEY_GIT_PASSPHRASE = args("passphrase", "123456")
+ARG_KEY_MAVEN_USER = args("mvn_user", "admin")
+ARG_KEY_MAVEN_PASSWORD = args("mvn_pwd")
+ARG_KEY_GIT_SSH_HOST = args("ssh_host", "git@git.oschina.net")
+ARG_KEY_GIT_WORK_HOME = args("WORK_HOME")
+ARG_KEY_SERVER_PORT = 8001
+#
+global ARG_KEY_GIT_NAME
+global ARG_KEY_GIT_MAIL
+global ARG_KEY_GIT_USER
+global ARG_KEY_GIT_PASSWORD
+global ARG_KEY_GIT_BRANCH
+global ARG_KEY_GIT_REPOSITORY
+ARG_KEY_GIT_NAME = "name"
+ARG_KEY_GIT_MAIL = "mail"
+ARG_KEY_GIT_USER = "user"
+ARG_KEY_GIT_PASSWORD = "pwd"
+ARG_KEY_GIT_BRANCH = "branch"
+ARG_KEY_GIT_REPOSITORY = "repo"
+#
+#
+#-------------------------------------------------------------------
+#
 #
 # -生成随机用户和email
 def run_genUserInfo():
@@ -582,15 +598,11 @@ if sys.argv[1] == "deploy":
     radnomUserMail = userInfo["mail"]
     git_name = args(ARG_KEY_GIT_NAME, radnomUserName)
     git_mail = args(ARG_KEY_GIT_MAIL, radnomUserMail)
-    passphrase = args(ARG_KEY_GIT_PASSPHRASE, "123456")
     git_user = args(ARG_KEY_GIT_USER)
     git_password = args(ARG_KEY_GIT_PASSWORD)
     git_branch = args(ARG_KEY_GIT_BRANCH, "master")
     git_repository = args(ARG_KEY_GIT_REPOSITORY)
-    maven_user = args(ARG_KEY_MAVEN_USER, "admin")
-    maven_password = args(ARG_KEY_MAVEN_PASSWORD)
-    git_sshHost = args(ARG_KEY_GIT_SSH_HOST, "git@git.oschina.net")
-    git_workDir = args(ARG_KEY_GIT_WORK_HOME)
+
     if git_workDir == None or git_workDir.strip() == "" :
         git_workDir = os.path.expanduser("~") + "/work"
     #
@@ -625,14 +637,3 @@ else:
 # ARG_KEY_MAVEN_PASSWORD = "mvn_pwd"
 # ARG_KEY_GIT_WORK_HOME = "WORK_HOME"
 # ARG_KEY_SERVER_PORT = "port"
-#
-# ENV passphrase "123456"
-# ENV mvn_user "admin"
-# ENV mvn_pwd ""
-# ENV branch "master"
-# ENV ssh_host "git@git.oschina.net"
-#
-# deploy server -port=7001
-# deploy deploy "-name=zyc" "-mail=zyc@hasor.net" "-user=zycgit" "-pwd=password" "-repo=https://git.oschina.net/zycgit/hasor.git"
-# deploy deploy "-name=zyc" "-mail=zyc@hasor.net" "-user=zycgit" "-pwd=password" "-repo=https://git.oschina.net/zycgit/hasor.git" "-branch=master"
-#
