@@ -339,7 +339,6 @@ def git_clone(git_workDir, git_branch, git_repository, git_name, git_mail, git_u
     return workDir
 #
 #
-#
 def mvn_deploy(maven_user, maven_password, workDir, passphrase, git_mail, sshHost):
     # server
     ossrhStr = os_popen("cat $MAVEN_HOME/conf/settings.xml | grep '<id>ossrh</id>'").read()
@@ -434,7 +433,7 @@ def run_configSSH():
         bodyStr = '<form action="/setssh.do" method="GET">\
 <div>(status:no, please add public key) SSH Public Key<hr/>' + sshKey["pubKey"] + '</div>\
 <label><span>ssh_mail:</span><input name="ssh_mail" type="text" value="' + sshKey["email"] + '"/></label>\
-<label><span>ssh_host:</span><input name="ssh_host" type="text" value="' + ssh_host + '"/></label>\
+<label><span>ssh_host:</span>' + ssh_host + '</label>\
 <hr />\
 <input type="submit" value="reset ssh config">\
 </form>'
@@ -447,6 +446,8 @@ def run_configSSH():
 def run_deployForm():
     maven_user = args(ARG_KEY_MAVEN_USER, "admin")
     maven_password = args(ARG_KEY_MAVEN_PASSWORD)
+    passphrase = args(ARG_KEY_GIT_PASSPHRASE, "123456")
+
     git_user = args(ARG_KEY_GIT_USER)
     git_password = args(ARG_KEY_GIT_PASSWORD)
     git_branch = args(ARG_KEY_GIT_BRANCH, "master")
@@ -454,8 +455,9 @@ def run_deployForm():
     sshKey = ssh_pub()
     bodyStr = '\
 <form action="/request.do" method="GET">\
-<label><span>mvn_user:</span><input name="mvn_user" type="text" value="' + maven_user + '"/></label>\
-<label><span>mvn_pwd:</span><input name="mvn_pwd" type="text" value="' + maven_password + '"/></label>\
+<label><span>mvn_user:</span>' + maven_user + '</label>\
+<label><span>mvn_pwd:</span>' + maven_password + '</label>\
+<label><span>passphrase:</span>' + passphrase + '</label>\
 <hr/>\
 <label><span>git_name:</span>' + sshKey["email"].split("@")[0] + '</label>\
 <label><span>git_mail:</span>' + sshKey["email"] + '</label>\
@@ -500,9 +502,9 @@ def run_server(server_port):
             #
             # -重新设定ssh
             if requestURI == "/setssh.do"  :
-                ssh_host = chooseVal(params["ssh_host"][0], args(ARG_KEY_GIT_SSH_HOST))
-                git_mail = chooseVal(params["ssh_mail"][0], args(ARG_KEY_GIT_MAIL, run_genUserInfo()["mail"]))
+                ssh_host = args(ARG_KEY_GIT_SSH_HOST)
                 passphrase = args(ARG_KEY_GIT_PASSPHRASE, "123456")
+                git_mail = chooseVal(params["ssh_mail"][0], args(ARG_KEY_GIT_MAIL, run_genUserInfo()["mail"]))
                 sshKey = ssh_pub()
                 if sshKey == None or sshKey["email"] != git_mail:
                     sshKey = ssh_gen(git_mail, passphrase)
