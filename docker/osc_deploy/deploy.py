@@ -1,12 +1,14 @@
 #!/usr/bin/env python
+# -*- coding: UTF－8 -*-
+
 import datetime, time
 from http.server import HTTPServer, BaseHTTPRequestHandler  
 import io, shutil , urllib, cgi
 import os, sys, pexpect, threading
+
+
 #
-#
-#
-#-------------------------------------------------------------------
+#--------------------------------------------------------------------------------------------------------------------------------------------------------------
 def writeFile(file, lines):
     fileObj = open(file, "a")
     try :
@@ -17,12 +19,12 @@ def writeFile(file, lines):
 def readFile(file):
     body = ''
     if os.path.exists(file):
-    print("reading file ->" + file)
-    fileObj = open(file)
-    try :
-        body = fileObj.read()
-    finally:
-        fileObj.close()
+        print("reading file ->" + file)
+        fileObj = open(file)
+        try :
+            body = fileObj.read()
+        finally:
+            fileObj.close()
     else:
         print("file is not exists ->" + file)
     return body.strip()
@@ -65,15 +67,14 @@ def chooseVal(val_a, val_b):
         return val_b
     return val_a
 #
-#-------------------------------------------------------------------
-#
+#--------------------------------------------------------------------------------------------------------------------------------------------------------------
 # 调用“gpg -k”命令枚举已经生成的key找到匹配key的公钥和私钥ID
 #   - 返回形式：{"pubKey":findPUB, "subKey":findSUB, "mail":userEmail}
 def gpg_findKey(userEmail):
     findPUB = None
     findUID = None
     findSUB = None
-    for line in os_popen("gpg -k").readlines():
+    for line in os_popen("gpg2 -k").readlines():
         if line.startswith("pub"):
             findPUB = line.split("/")[1].split(" ")[0]
         elif line.startswith("uid"):
@@ -98,7 +99,7 @@ def gpg_genKey(userName, userEmail, passphrase):
         print("find key ->" + findResult["pubKey"])
         return findResult
     #
-    print("gen key...")
+    print("gen2 key...")
     child = pexpect.spawnu("gpg", ["--gen-key"])
     child.logfile = sys.stdout
     child.delaybeforesend = 0.1
@@ -158,7 +159,7 @@ def gpg_genKey(userName, userEmail, passphrase):
 # 通过公钥ID从“hkp://pool.sks-keyservers.net”上恢复公钥Key
 #   - 返回形式：True or False
 def gpg_recvPubKey(pubKey):
-    for line in os_popen("gpg --keyserver hkp://pool.sks-keyservers.net --recv-keys " + pubKey).readlines():
+    for line in os_popen("gpg2 --keyserver hkp://pool.sks-keyservers.net --recv-keys " + pubKey).readlines():
         if line.find("Total number") > 0:
             line = line.split(":")[2].strip()
             if line == "1" :
@@ -168,7 +169,7 @@ def gpg_recvPubKey(pubKey):
 # 将指定的公钥ID发布到“hkp://pool.sks-keyservers.net”服务器上
 #   - 返回形式：True or False
 def gpg_sendKey(keyVal):
-    execResult = os_system("gpg --keyserver hkp://pool.sks-keyservers.net --send-keys %s" % (keyVal))
+    execResult = os_system("gpg2 --keyserver hkp://pool.sks-keyservers.net --send-keys %s" % (keyVal))
     if execResult == 0 :
         print("the key %s has been push." % (keyVal))
         print("check push...")
@@ -178,33 +179,50 @@ def gpg_sendKey(keyVal):
         return False
 #
 # 初始化gpg环境，如果不存在key则生成，并推送到“hkp://pool.sks-keyservers.net”服务器上
-#   - 返回形式：True or False
-def gpg_init(userName, userEmail, passphrase):
-    keyData = gpg_findKey(userEmail)
-    # form local
+#   - {git_host:'',git_mail:'',ssh_config:'',passphrase:''}
+#   - 返回形式：{"html":bodyStr, "result":False}
+def gpg_config(params):
+    gpg_email = params.get("gpg_email")[0] if params.get("gpg_email") != None else "deployer@hasor.net"
+    gpg_config = params.get("gpg_config")[0] if params.get("gpg_config") != None else False
+    gpg_config = True if gpg_config == True or gpg_config == "true" or gpg_config == "True" else False
+    passphrase = params.get("passphrase")[0] if params.get("passphrase") != None else "123456"
+    #
+    keyData = gpg_findKey(gpg_email)
+    if keyData == None:
+        bodyStr = "<form action='/gpg_config.do' method='GET'>\
+        <div><b><font color='#FF0000'>failed</font> - (Step 1 of 2)</b> init Gnupg Key <hr/></div>\
+        <label><span>gpg_email</span>" + gpg_email + "</label>\
+        <label><span>passphrase</span>" + passphrase + "</label>\
+        <input name='gpg_config' type='hidden' value='true'><input type='submit' value='config Gnupg'>\
+        <br/><hr />\
+        </form>"
+        if gpg_config == False:
+            return {"html":bodyStr, "result":False}
+        else:
+            try :
+                userName = gpg_email.split("@")[0]
+                if len(userName) < 5:
+                    userName = "gpgAuto_" + userName
+                print("gen gpgkey ,userName: %s, mail: %s, passphrase: %s" % (userName , gpg_email, passphrase))
+                os_system("dd if=/dev/urandom of=~/.gnupg/random_seed bs=1M count=1")
+                keyData = gpg_genKey(userName, gpg_email, passphrase)
+                if keyData != None:
+                    gpg_sendKey(keyData["pubKey"])
+                    print("gpg genkey success.")
+            finally:
+                os_system("rm -rf ~/.gnupg/random_seed")
+    #
     if keyData != None:
         print("gen gpgKey %s from local." % (keyData["pubKey"]))
-        return True
-    # form gen
-    try :
-        if len(userName) < 5:
-            userName = "gpgAuto_" + userName
-        print("gen gpgkey ,userName: %s, mail: %s, passphrase: %s" % (userName , userEmail, passphrase))
-        os_system("dd if=/dev/urandom of=~/.gnupg/random_seed bs=1M count=1")
-        keyData = gpg_genKey(userName, userEmail, passphrase)
-        # failed
-        if keyData == None:
-            print("gen gnupg failed.")
-            return False
-    finally:
-        os_system("rm -rf ~/.gnupg/random_seed")
-    # success
-    gpg_sendKey(keyData["pubKey"])
-    print("gpg genkey success.")
-    return True
+        bodyStr = "<div><b><font color='#00FF00'>success</font> - (Step 2 of 2)</b> Gnupg Key <hr/></div>\
+        <label><span>Key</span>" + keyData["pubKey"] + "</label>\
+        <label><span>passphrase</span>" + passphrase + "</label>\
+        <br/><hr/>"
+        return {"html":bodyStr, "result":True}
+    else:
+        return {"html":bodyStr, "result":False}
 #
-#-------------------------------------------------------------------
-#
+#--------------------------------------------------------------------------------------------------------------------------------------------------------------
 # 获取当前ssh公钥“id_rsa.pub”储存的内容。
 #   - 返回形式：{email:xxxx , pubKey: xxxx}，失败返回 None
 def ssh_pub():
@@ -263,11 +281,13 @@ def ssh_gen(git_mail, passphrase):
     #
     return ssh_pub()
 #
-# 生成公钥和私钥。例子：git@git.oschina.net
+# 测试SSH联通性，例子：git@git.oschina.net
 #   - 返回形式：True or False
 def ssh_test(sshHost, passphrase):
-    cmdStr = "ssh -T %s" % (sshHost)
+    cmdStr = "ssh -T git@%s" % (sshHost)
     print(cmdStr)
+    if sshHost == "" or sshHost == None:
+        return False
     child = pexpect.spawnu(cmdStr)
     child.logfile = sys.stdout
     child.delaybeforesend = 0.1
@@ -302,207 +322,155 @@ def ssh_test(sshHost, passphrase):
     #
     return True
 #
-#-------------------------------------------------------------------
+# 检测ssh连通性并返回相应的html代码，ssh_config({git_host:'',git_mail:'',ssh_config:'',passphrase:''})
+#   - 返回形式：{"html":bodyStr, "result":"False"}
+def ssh_config(params):
+    git_host = params.get("git_host")[0] if params.get("git_host") != None else ""
+    git_mail = params.get("git_mail")[0] if params.get("git_mail") != None else "deployer@hasor.net"
+    ssh_config = params.get("ssh_config")[0] if params.get("ssh_config") != None else False
+    ssh_config = True if ssh_config == True or ssh_config == "true" or ssh_config == "True" else False
+    passphrase = params.get("passphrase")[0] if params.get("passphrase") != None else "123456"
+    #
+    sshKey = ssh_pub()
+    if sshKey == None:
+        bodyStr = "<form action='/ssh_config.do' method='GET'>\
+<div><b><font color='#FF0000'>failed</font> - (Step 1 of 3)</b> please gen SSH Public Key<hr/></div>\
+<label><span>git_host:</span>" + git_host + "</label>\
+<label><span>git_mail:</span><input name='git_mail' type='text' value='" + git_mail + "'></label>\
+<label><span>passphrase:</span>" + passphrase + "</label>\
+<input name='ssh_config' type='hidden' value='true'><input type='submit' value='config SSH'>\
+<br/><hr />\
+</form>"
+        if (ssh_config == False):
+            return {"html":bodyStr, "result":False}
+        else:
+            sshKey = ssh_gen(git_mail, passphrase)
+    #
+    if ssh_config != None and ssh_config == True and sshKey["email"] != git_mail:
+        sshKey = ssh_gen(git_mail, passphrase)
+    #
+    if ssh_test(git_host, passphrase) == False:
+        bodyStr = "<form action='/ssh_config.do' method='GET'>\
+<div><b><font color='#FF0000'>failed</font> - (Step 2 of 3)</b> please add Public Key to git host :" + git_host + "<hr/>\
+  <div style='background-color:#FFFFcc'>" + sshKey["pubKey"] + "</div>\
+</div>\
+<label><span>git_mail:</span>" + sshKey["email"] + "</label>\
+<label><span>git_host:</span>" + git_host + "</label>\
+<br/><hr />\
+<label><span>new mail:</span><input name='git_mail' type='text' value='" + git_mail + "'></label>\
+<input name='ssh_config' type='hidden' value='true'><input type='submit' value='reset SSH'>\
+</form>"
+        return {"html":bodyStr, "result":False}
+    else:
+        bodyStr = "<div><b><font color='#00FF00'>success</font> - (Step 3 of 3)</b> SSH Public Key <hr/>\
+        <div style='background-color:#FFFFcc'>" + sshKey["pubKey"] + "</div>\
+        </div>\
+        <label><span>passphrase:</span>" + passphrase + "</label><hr/>"
+        return {"html":bodyStr, "result":True, "email": sshKey["email"]}
 #
-# 克隆远程版本库，并且签出指定分支。
-#   - 返回形式：成功之返回源码路径否则返回 None
-def git_clone(git_workDir, git_branch, git_repository, git_name, git_mail, git_user, git_password):
-    workDir = git_workDir + "/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S-%f")
-    print("clone to ‘%s’" % (workDir))
-    resultCode = os_system('git clone --branch %s --progress -v --depth 1 "%s" "%s"' % (git_branch, git_repository, workDir))
-    if resultCode != 0:
-        print("clone error -> %s" % (resultCode))
-        return None
-    # 配置项目
-    os_system('git config --global user.name "%s"' % (git_name))
-    os_system('git config --global user.email %s' % (git_mail))
-    return workDir
-#
-#
-# 配置mvn
-#
-def mvn_deploy(maven_user, maven_password, workDir, passphrase, git_mail, sshHost):
-    # server
+#--------------------------------------------------------------------------------------------------------------------------------------------------------------
+#   - 返回形式：{"html":bodyStr, "result":"False"}
+def mvn_config(params):
+    maven_user = params.get("maven_user")[0] if params.get("maven_user") != None else "admin"
+    maven_password = params.get("maven_password")[0] if params.get("maven_password") != None else "admin"
+    mvn_config = params.get("mvn_config")[0] if params.get("mvn_config") != None else False
+    mvn_config = True if mvn_config == True or mvn_config == "true" or mvn_config == "True" else False
+    #
     ossrhStr = os_popen("cat $MAVEN_HOME/conf/settings.xml | grep '<id>ossrh</id>'").read()
     if ossrhStr.strip() == "" :
-        print("write 'ossrh' to settings.xml")
-        result = os_system("sed -i '/<\/servers>/i\<server><id>ossrh</id><username>" + maven_user + "</username><password>" + maven_password + "</password></server>' $MAVEN_HOME/conf/settings.xml")
-        if result != 0:
-            print("write 'ossrh' to settings.xml -> failed ,exit code -> %s" % (result))
-            return result;
+        bodyStr = "<form action='/mvn_config.do' method='GET'>\
+<b><font color='#FF0000'>failed</font> - (Step 1 of 2)</b> maven user of ossrh<hr/>\
+<label><span>maven_user:</span><input name='maven_user' type='text' value='" + maven_user + "'></label>\
+<label><span>maven_password:</span><input name='maven_password' type='text' value='" + maven_password + "'></label>\
+<input name='mvn_config' type='hidden' value='true'><input type='submit' value='config Maven'>\
+<br/><hr /></form>"
+        if mvn_config == False:
+            return {"html":bodyStr, "result":False}
+        else:
+            print("write 'ossrh' to settings.xml")
+            result = os_system("sed -i '/<\/servers>/i\<server><id>ossrh</id><username>" + maven_user + "</username><password>" + maven_password + "</password></server>' $MAVEN_HOME/conf/settings.xml")
+            if result != 0:
+                print("write 'ossrh' to settings.xml -> failed ,exit code -> " + result)
+                bodyStr
     else:
-        print("do not write maven user.")
+        print("do not write ossrh.")
     # mirror
-    ossrhStr = os_popen("cat $MAVEN_HOME/conf/settings.xml | grep '<id>nexus-osc</id>'").read()
-    if ossrhStr.strip() == "" :
+    mirrorStr = os_popen("cat $MAVEN_HOME/conf/settings.xml | grep '<id>nexus-osc</id>'").read()
+    if mirrorStr.strip() == "" :
         print("write 'mirror' to settings.xml")
         appendStr = "<mirror><id>nexus-osc</id><mirrorOf>*</mirrorOf><name>Nexus osc</name><url>http://maven.oschina.net/content/groups/public/</url></mirror>"
         result = os_system("sed -i '/<\/mirrors>/i\%s' $MAVEN_HOME/conf/settings.xml" % (appendStr))
         if result != 0:
-            print("write 'mirror' to settings.xml -> failed ,exit code -> %s" % (result))
+            print("write 'mirror' to settings.xml -> failed ,exit code -> " + result)
     else:
         print("do not write mirror.")
     #
-    def deploy():
-        # 检查公钥
-        if ssh_test(sshHost, passphrase) == False:
-            print("ssh -T %s , test failed." % (sshHost))
-            print("Please add the public key to %s" % (sshHost))
-            return 1
-        # deploy
-        cmdStr = "mvn clean release:clean release:prepare -P release -Dgpg.passphrase=" + passphrase
-        print(cmdStr)
-        child = pexpect.spawnu(cmdStr)
-        child.logfile = sys.stdout
-        child.delaybeforesend = 0.1
-        expectList = ["What is the release version for",
-                    "What is SCM release tag or label for",
-                    "What is the new development version for",
-                    "Are you sure you want to continue connecting (yes/no)?",
-                    "Enter passphrase for key",
-                    pexpect.EOF,
-                    pexpect.TIMEOUT]
-        exeStatus = None
-        while True:
-            index = child.expect(expectList)
-            if index == 0 or index == 1 or index == 2:
-                child.sendline()
-            elif index == 3:
-                child.sendline("yes")
-            elif index == 4:
-                child.sendline(passphrase)
-            elif index == 5 or index == 6:
-                if index == 5:
-                    print("release:prepare finish.")
-                    exeStatus = True
-                elif index == 6:
-                    continue
-                break
-        #
-        if child.isalive():
-            print("mvn process kill.")
-            child.close(force=True)
-        if exeStatus != True:
-            print("deploy on release:prepare failed.")
-            return 1;
-        #
-        result = os_system("mvn release:perform")
-        if result != 0:
-            print("deploy on release:perform failed ,exit code -> %s" % (result))
-            return result;
-        return 0
-    return os_onpath(workDir, deploy)
+    bodyStr = "<b><font color='#00FF00'>success</font> - (Step 2 of 2)</b> maven user of ossrh<hr/>\
+    <label><span>ossrhStr:</span>" + ossrhStr + "</label>\
+    <label><span>mirrorStr:</span>" + mirrorStr + "</label><hr/>"
+    return {"html":bodyStr, "result":True}
 #
-#-------------------------------------------------------------------
+#--------------------------------------------------------------------------------------------------------------------------------------------------------------
 #
-# -生成随机用户和email
+def git_list():
+    workPath = os_popen("echo $WORK_HOME").read()
+    works = os.listdir(workPath.split("\n")[0])
+    listBody = "Git Work Space"
+    for item in works:
+        listBody = listBody + ("<br/>&nbsp;&nbsp;&nbsp;&nbsp;<a href='/log.do?logName=" + item + "' target='_blank'>" + item + "</a>")
+    return listBody + "<hr/>"
+#
+# 克隆远程版本库，并且签出指定分支。
+#   - 返回形式：成功之返回源码路径否则返回 None
+def git_clone(params):
+    workPath = os_popen("echo $WORK_HOME").read()
+    workPath = workPath.split("\n")[0]
+    workPath = workPath + "/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S-%f")
+    print("clone to ‘" + workPath + "’")
+    #
+    git_name = params["git_name"]
+    git_mail = params["git_mail"]
+    git_branch = params["git_branch"]
+    git_repository = params["git_repository"]
+    #
+    if git_name == "" or git_branch == "" or git_repository == "":
+        return False
+    resultCode = os_system('git clone --branch %s --progress -v --depth 1 "%s" "%s"' % (git_branch, git_repository, workPath))
+    if resultCode != 0:
+        print("clone error -> %s" % (resultCode))
+        return False
+    os_system('git config --global user.name "%s"' % (git_name))
+    os_system('git config --global user.email %s' % (git_mail))
+    return workPath
 #
 #
-#
-global ARG_KEY_GIT_PASSPHRASE
-global ARG_KEY_MAVEN_USER
-global ARG_KEY_MAVEN_PASSWORD
-global ARG_KEY_GIT_SSH_HOST
-global ARG_KEY_GIT_WORK_HOME
-global ARG_KEY_SERVER_PORT
-ARG_KEY_GIT_PASSPHRASE = args("passphrase", "123456")
-ARG_KEY_MAVEN_USER = args("mvn_user", "admin")
-ARG_KEY_MAVEN_PASSWORD = args("mvn_pwd")
-ARG_KEY_GIT_SSH_HOST = args("ssh_host", "git@git.oschina.net")
-ARG_KEY_GIT_WORK_HOME = args("WORK_HOME")
-ARG_KEY_SERVER_PORT = 8001
-#
-global ARG_KEY_GIT_NAME
-global ARG_KEY_GIT_MAIL
-global ARG_KEY_GIT_USER
-global ARG_KEY_GIT_PASSWORD
-global ARG_KEY_GIT_BRANCH
-global ARG_KEY_GIT_REPOSITORY
-ARG_KEY_GIT_NAME = "name"
-ARG_KEY_GIT_MAIL = "mail"
-ARG_KEY_GIT_USER = "user"
-ARG_KEY_GIT_PASSWORD = "pwd"
-ARG_KEY_GIT_BRANCH = "branch"
-ARG_KEY_GIT_REPOSITORY = "repo"
-#
-#
-#-------------------------------------------------------------------
-#
-#
-# -生成随机用户和email
-def run_genUserInfo():
-    randomUser = datetime.datetime.now().strftime("u%Y%m%d%H%M%S")
-    randomMail = randomUser + "@t.hasor.net"
-    git_name = args("user", randomUser)
-    git_mail = args("mail", randomMail)
-    return {"user":git_name, "mail":git_mail}
-#
-# －检测ssh连通性并返回相应的html代码。
-def run_configSSH():
-    ssh_host = args(ARG_KEY_GIT_SSH_HOST)
-    passphrase = args(ARG_KEY_GIT_PASSPHRASE, "123456")
-    git_mail = args(ARG_KEY_GIT_MAIL, run_genUserInfo()["mail"])
-    sshKey = ssh_pub()
-    if sshKey == None:
-        sshKey = ssh_gen(git_mail, passphrase)
-    if ssh_test(ssh_host, passphrase) == False:
-        bodyStr = '<form action="/setssh.do" method="GET">\
-<div>(status:no, please add public key) SSH Public Key<hr/>' + sshKey["pubKey"] + '</div>\
-<label><span>ssh_mail:</span><input name="ssh_mail" type="text" value="' + sshKey["email"] + '"/></label>\
-<label><span>ssh_host:</span>' + ssh_host + '</label>\
-<hr />\
-<input type="submit" value="reset ssh config">\
-</form>'
-        return {"html":bodyStr, "result":"False"}
-    else:
-        bodyStr = "<div>(status:ok) SSH Public Key <hr/>%s</div>" % (sshKey["pubKey"])
-        return {"html":bodyStr, "result":"True"}
-#
-# －deploy的form代码。
-def run_deployForm():
-    maven_user = args(ARG_KEY_MAVEN_USER, "admin")
-    maven_password = args(ARG_KEY_MAVEN_PASSWORD)
-    passphrase = args(ARG_KEY_GIT_PASSPHRASE, "123456")
-
-    git_user = args(ARG_KEY_GIT_USER)
-    git_password = args(ARG_KEY_GIT_PASSWORD)
-    git_branch = args(ARG_KEY_GIT_BRANCH, "master")
-    git_repository = args(ARG_KEY_GIT_REPOSITORY)
-    sshKey = ssh_pub()
-    bodyStr = '\
-<form action="/request.do" method="GET">\
-<label><span>mvn_user:</span>' + maven_user + '</label>\
-<label><span>mvn_pwd:</span>' + maven_password + '</label>\
-<label><span>passphrase:</span>' + passphrase + '</label>\
-<hr/>\
-<label><span>git_name:</span>' + sshKey["email"].split("@")[0] + '</label>\
-<label><span>git_mail:</span>' + sshKey["email"] + '</label>\
-<label><span>git_user:</span><input name="' + ARG_KEY_GIT_USER + '" type="text" value="' + git_user + '"/></label>\
-<label><span>git_pwd:</span><input name="' + ARG_KEY_GIT_PASSWORD + '" type="text" value="' + git_password + '"/></label>\
-<hr/>\
-<label><span>git_branch:</span><input name="' + ARG_KEY_GIT_BRANCH + '" type="text" value="' + git_branch + '"/></label>\
-<label><span>git_repo:</span><input name="' + ARG_KEY_GIT_REPOSITORY + '" type="text" value="' + git_repository + '"/></label>\
-<hr />\
-<input type="submit" value="deploy">\
-</form>'
-    return bodyStr
-#
+#--------------------------------------------------------------------------------------------------------------------------------------------------------------
 def run_server(server_port):
     class DeployServerHandler(BaseHTTPRequestHandler):
-        def writeHTML(self, enc):
+        #----------------------------------------
+        def doResponse(self, htmlBody="", enc="UTF-8"):
             htmlBody = '<html>\
  <style type="text/css">\
  label { display: block; padding: 3px 3px }\
  span  { display: block; float:left; width: 100px;}\
  input { display: block; flout:left; width: 80%%;}\
- </style>' + run_configSSH()["html"] + '<hr/>' + run_deployForm() + '</html>'
-            return "".join(htmlBody).encode(enc)
+ * {word-wrap:break-word;}\
+ </style>' + htmlBody + '</html>'
+            encoded = "".join(htmlBody).encode(enc)
+            #
+            f = io.BytesIO()
+            f.write(encoded)
+            f.seek(0)
+            self.send_response(200)
+            self.send_header("Content-type", "text/html; charset=%s" % enc)
+            self.send_header("Content-Length", str(len(encoded)))
+            self.end_headers()
+            shutil.copyfileobj(f, self.wfile)
+            return
         #
-        #---------------------------------------------------------------------------------
         def do_POST(self):
             do_GET(self)
-        #
-        #---------------------------------------------------------------------------------
+        #----------------------------------------
         def do_GET(self):
             if self.path == "/favicon.ico":
                 return
@@ -514,55 +482,10 @@ def run_server(server_port):
                 requestURI = arrayData[0]
                 queryString = arrayData[1]
             params = urllib.parse.parse_qs(queryString)
-            responseData = ""
+            params["git_host"] = ["git.oschina.net"]
             #
-            # -重新设定ssh
-            if requestURI == "/setssh.do"  :
-                ssh_host = args(ARG_KEY_GIT_SSH_HOST)
-                passphrase = args(ARG_KEY_GIT_PASSPHRASE, "123456")
-                git_mail = chooseVal(params["ssh_mail"][0], args(ARG_KEY_GIT_MAIL, run_genUserInfo()["mail"]))
-                sshKey = ssh_pub()
-                if sshKey == None or sshKey["email"] != git_mail:
-                    sshKey = ssh_gen(git_mail, passphrase)
-                responseData = self.writeHTML("UTF-8")
-            #
-            if requestURI == "/request.do"  :
-                userInfo = run_genUserInfo()
-                radnomUserName = userInfo["user"]
-                radnomUserMail = userInfo["mail"]
-                exeArgs = {}
-                exeArgs[ARG_KEY_GIT_NAME] = chooseVal(params[ARG_KEY_GIT_NAME][0], args(ARG_KEY_GIT_NAME, radnomUserName))
-                exeArgs[ARG_KEY_GIT_MAIL] = chooseVal(params[ARG_KEY_GIT_MAIL][0], args(ARG_KEY_GIT_MAIL, radnomUserMail))
-                exeArgs[ARG_KEY_GIT_USER] = chooseVal(params[ARG_KEY_GIT_USER][0], args(ARG_KEY_GIT_USER))
-                exeArgs[ARG_KEY_GIT_PASSWORD] = chooseVal(params[ARG_KEY_GIT_PASSWORD][0], args(ARG_KEY_GIT_PASSWORD))
-                exeArgs[ARG_KEY_GIT_BRANCH] = chooseVal(params[ARG_KEY_GIT_BRANCH][0], args(ARG_KEY_GIT_BRANCH, "master"))
-                exeArgs[ARG_KEY_GIT_REPOSITORY] = chooseVal(params[ARG_KEY_GIT_REPOSITORY][0], args(ARG_KEY_GIT_REPOSITORY))
-                exeArgs[ARG_KEY_MAVEN_USER] = chooseVal(params[ARG_KEY_MAVEN_USER][0], args(ARG_KEY_MAVEN_USER, "admin"))
-                exeArgs[ARG_KEY_MAVEN_PASSWORD] = chooseVal(params[ARG_KEY_MAVEN_PASSWORD][0], args(ARG_KEY_MAVEN_PASSWORD))
-                exeArgs[ARG_KEY_GIT_SSH_HOST] = chooseVal(params[ARG_KEY_GIT_SSH_HOST][0], args(ARG_KEY_GIT_SSH_HOST))
-                #
-                shellArgs = ""
-                for arg in exeArgs:
-                    shellArgs = shellArgs + ' -%s="%s"' % (arg, exeArgs[arg])
-                shellPath = os.path.split(os.path.realpath(__file__))[0]
-                logName = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-                writeFileName = "%s/logs/deploy.%s.log" % (shellPath, logName)
-                #
-                def foo(shellPath, shellArgs):
-                    os_system("mkdir %s/logs/" % (shellPath))
-                    console = os_popen("%s/deploy.py deploy %s > %s 2>&1" % (shellPath, shellArgs, writeFileName))
-                #
-                workThread = threading.Thread(target=foo, args=(shellPath, shellArgs))
-                workThread.start()
-                #
-                self.send_response(200)
-                self.send_header("Content-type", "text/html; charset=%s" % enc)
-                self.end_headers()
-                self.wfile.write(("<a href='/status.do?logName=%s'>点击查看日志</a>" % (logName)).encode())
-                return
-                #
-            elif requestURI == "/status.do":
-                params = urllib.parse.parse_qs(queryString)
+            # －－－－Log－－－－
+            if requestURI == "/log.do":
                 logName = params["logName"][0]
                 self.send_response(200)
                 self.send_header("Content-type", "text/html; charset=%s" % enc)
@@ -574,66 +497,120 @@ def run_server(server_port):
                 for line in logBody.split("\n"):
                     self.wfile.write((cgi.escape(line) + "<br>").encode())
                 return
-            else:
-                encoded = self.writeHTML(enc)
-                f = io.BytesIO()
-                f.write(encoded)
-                f.seek(0)
+            #
+            # －－－－发布－－－－
+            if requestURI == "/deploy.do":
+                shellPath = os.path.split(os.path.realpath(__file__))[0]
+                logName = datetime.datetime.now().strftime("%Y%m%d-%H%M%S-%f");
+                writeFileName = "%s/logs/deploy.%s.log" % (shellPath, logName)
+                shellArgs = ""
+                for arg in params:
+                    shellArgs = shellArgs + ' -%s="%s"' % (arg, params[arg][0])
+                print ("deploy args -> " + shellArgs)
+                #
+                def foo(shellPath, shellArgs):
+                    os_system("mkdir %s/logs/" % (shellPath))
+                    console = os_popen("%s/deploy.py deploy %s > %s 2>&1" % (shellPath, shellArgs, writeFileName))
                 self.send_response(200)
                 self.send_header("Content-type", "text/html; charset=%s" % enc)
-                self.send_header("Content-Length", str(len(encoded)))
                 self.end_headers()
-                shutil.copyfileobj(f, self.wfile)
+                self.wfile.write(("<a href='/log.do?logName=%s'>点击查看日志</a>" % (logName)).encode())
+                #
+                workThread = threading.Thread(target=foo, args=(shellPath, shellArgs))
+                workThread.start()
                 return
-        #---------------------------------------------------------------------------------
+            #
+            # －－－－首页－－－－
+            # config ssh
+            sshInfo = ssh_config(params)
+            if sshInfo["result"] == False:
+                self.doResponse(sshInfo["html"])
+                return
+            # config gpg
+            params["gpg_email"] = [sshInfo["email"]] 
+            gpgInfo = gpg_config(params)
+            if gpgInfo["result"] == False:
+                self.doResponse(sshInfo["html"] + "<br/>" + gpgInfo["html"])
+            # config maven
+            mvnInfo = mvn_config(params)
+            self.doResponse(sshInfo["html"] + "<br/>" + gpgInfo["html"] + "<br/>" + mvnInfo["html"] + "<br/>" + git_list())
+            return
+        #----------------------------------------
     httpd = HTTPServer(("", int(server_port)), DeployServerHandler)
     print("deploy Server started on 127.0.0.1,port %s....." % (server_port))
     httpd.serve_forever()
 #
-#-------------------------------------------------------------------
+#--------------------------------------------------------------------------------------------------------------------------------------------------------------
 #
-if sys.argv[1] == "deploy":
-    userInfo = run_genUserInfo()
-    radnomUserName = userInfo["user"]
-    radnomUserMail = userInfo["mail"]
-    git_name = args(ARG_KEY_GIT_NAME, radnomUserName)
-    git_mail = args(ARG_KEY_GIT_MAIL, radnomUserMail)
-    git_user = args(ARG_KEY_GIT_USER)
-    git_password = args(ARG_KEY_GIT_PASSWORD)
-    git_branch = args(ARG_KEY_GIT_BRANCH, "master")
-    git_repository = args(ARG_KEY_GIT_REPOSITORY)
-
-    if git_workDir == None or git_workDir.strip() == "" :
-        git_workDir = os.path.expanduser("~") + "/work"
+#
+def deploy():
+    # deploy
+    cmdStr = "mvn clean release:clean release:prepare -P release -Dgpg.passphrase=" + passphrase
+    print(cmdStr)
+    child = pexpect.spawnu(cmdStr)
+    child.logfile = sys.stdout
+    child.delaybeforesend = 0.1
+    expectList = ["What is the release version for",
+                    "What is SCM release tag or label for",
+                    "What is the new development version for",
+                    "Are you sure you want to continue connecting (yes/no)?",
+                    "Enter passphrase for key",
+                    pexpect.EOF,
+                    pexpect.TIMEOUT]
+    exeStatus = None
+    while True:
+        index = child.expect(expectList)
+        if index == 0 or index == 1 or index == 2:
+            child.sendline()
+        elif index == 3:
+            child.sendline("yes")
+        elif index == 4:
+            child.sendline(passphrase)
+        elif index == 5 or index == 6:
+            if index == 5:
+                print("release:prepare finish.")
+                exeStatus = True
+            elif index == 6:
+                continue
+            break
     #
-    if gpg_init(git_name, git_mail, passphrase) != True:
-        print("--> gpg_init failed.")
-        exit(1)
-    workDir = git_clone(git_workDir, git_branch , git_repository, git_name , git_mail, git_user , git_password)
-    if workDir == None:
-        print("--> git_clone '%s' failed." % (git_repository))
-        exit(2)
-    resultCode = mvn_deploy(maven_user, maven_password, workDir, passphrase, git_mail, git_sshHost)
-    if resultCode != 0:
-        print("--> mvn_deploy '%s' failed." % (workDir))
-        exit(3)
-    print("deploy finish.")
-elif sys.argv[1] == "server":
-    server_port = args(ARG_KEY_SERVER_PORT, "7001")
-    run_server(server_port)
-else:
-    print("args error.")
+    if child.isalive():
+        print("mvn process kill.")
+        child.close(force=True)
+    if exeStatus != True:
+        print("deploy on release:prepare failed.")
+        return 1;
+    #
+    result = os_system("mvn release:perform")
+    if result != 0:
+        print("deploy on release:perform failed ,exit code -> %s" % (result))
+        return result;
+    return 0
+#
+#--------------------------------------------------------------------------------------------------------------------------------------------------------------
 #
 #
 #
-# ARG_KEY_GIT_NAME = "name"
-# ARG_KEY_GIT_MAIL = "mail"
-# ARG_KEY_GIT_PASSPHRASE = "passphrase"
-# ARG_KEY_GIT_USER = "user"
-# ARG_KEY_GIT_PASSWORD = "pwd"
-# ARG_KEY_GIT_BRANCH = "branch"
-# ARG_KEY_GIT_REPOSITORY = "repo"
-# ARG_KEY_MAVEN_USER = "mvn_user"
-# ARG_KEY_MAVEN_PASSWORD = "mvn_pwd"
-# ARG_KEY_GIT_WORK_HOME = "WORK_HOME"
-# ARG_KEY_SERVER_PORT = "port"
+#
+
+if sys.argv[1] == "server":
+    run_server(7001)
+
+if sys.argv[1] == "clone":
+    sshKey = ssh_pub()
+    if sshKey == None:
+        print("clone failed. -> ssh need config.")
+    else:
+        email = sshKey["email"]
+        params = {}
+        params["git_name"] = email.split("@")[0]
+        params["git_mail"] = email
+        params["git_branch"] = "master"
+        params["git_repository"] = sys.argv[2]
+        targetPath = git_clone(params)
+        print("clone ok. ->" + targetPath)
+
+if sys.argv[1] == "deploy":
+# os_onpath(workPath, deploy)    
+    print("deploy")
+

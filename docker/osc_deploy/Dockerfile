@@ -21,14 +21,8 @@ RUN ln -s /usr/share/deployScript /script \
         && pip install pexpect
         && cp $MAVEN_HOME/conf/settings.xml $MAVEN_HOME/conf/settings.xml.bak
 
-ENV mvn_user "admin"
-ENV mvn_pwd ""
-ENV ssh_host "git@git.oschina.net"
+ENV git_host "git@git.oschina.net"
 ENV passphrase "123456"
-
-ENV user "deployUser"
-ENV mail "deployUser@hasor.net"
-ENV branch "master"
 
 #ENTRYPOINT [ "/script/deploy.py" ]
 CMD ["/bin/bash"]
