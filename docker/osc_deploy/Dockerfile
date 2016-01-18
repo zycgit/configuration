@@ -23,5 +23,5 @@ RUN ln -s /usr/share/deployScript /script \
 ENV git_host "git@git.oschina.net"
 ENV passphrase "123456"
 
-#ENTRYPOINT [ "/script/deploy.py" ]
+ENTRYPOINT [ "/script/deploy.py server" ]
 CMD ["/bin/bash"]
