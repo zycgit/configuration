@@ -5,7 +5,7 @@ MAINTAINER ZhaoYongChun "zyc@hasor.net"
 RUN apt-get update && apt-get install -y --no-install-recommends \
                 ca-certificates \
                 curl \
-                wget
+                wget \
                 gnupg \
                 git \
         && rm -rf /var/lib/apt/lists/* \
