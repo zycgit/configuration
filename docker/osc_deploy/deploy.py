@@ -74,7 +74,7 @@ def gpg_findKey(userEmail):
     findPUB = None
     findUID = None
     findSUB = None
-    for line in os_popen("gpg2 -k").readlines():
+    for line in os_popen("gpg -k").readlines():
         if line.startswith("pub"):
             findPUB = line.split("/")[1].split(" ")[0]
         elif line.startswith("uid"):
@@ -159,7 +159,7 @@ def gpg_genKey(userName, userEmail, passphrase):
 # 通过公钥ID从“hkp://pool.sks-keyservers.net”上恢复公钥Key
 #   - 返回形式：True or False
 def gpg_recvPubKey(pubKey):
-    for line in os_popen("gpg2 --keyserver hkp://pool.sks-keyservers.net --recv-keys " + pubKey).readlines():
+    for line in os_popen("gpg --keyserver hkp://pool.sks-keyservers.net --recv-keys " + pubKey).readlines():
         if line.find("Total number") > 0:
             line = line.split(":")[2].strip()
             if line == "1" :
@@ -169,7 +169,7 @@ def gpg_recvPubKey(pubKey):
 # 将指定的公钥ID发布到“hkp://pool.sks-keyservers.net”服务器上
 #   - 返回形式：True or False
 def gpg_sendKey(keyVal):
-    execResult = os_system("gpg2 --keyserver hkp://pool.sks-keyservers.net --send-keys %s" % (keyVal))
+    execResult = os_system("gpg --keyserver hkp://pool.sks-keyservers.net --send-keys %s" % (keyVal))
     if execResult == 0 :
         print("the key %s has been push." % (keyVal))
         print("check push...")

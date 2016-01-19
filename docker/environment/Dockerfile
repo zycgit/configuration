@@ -6,6 +6,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
                 ca-certificates \
                 curl \
                 wget
+                gnupg \
+                git \
+        && rm -rf /var/lib/apt/lists/* \
+        && rm -rf ~/.gnupg/
 
 # java7
 ENV LANG C.UTF-8

@@ -1,14 +1,6 @@
 FROM zycgit/environment
 MAINTAINER ZhaoYongChun "zyc@hasor.net"
 
-# install
-RUN apt-get update && apt-get install -y --no-install-recommends \
-                gnupg \
-                gnupg2 \
-                git \
-        && rm -rf /var/lib/apt/lists/* \
-        && rm -rf ~/.gnupg/
-
 # work
 VOLUME /work
 ENV WORK_HOME /work
