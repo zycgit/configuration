@@ -10,14 +10,14 @@ ENV SS_URL https://github.com/shadowsocks/shadowsocks-libev/archive/v$SS_VER.tar
 ENV SS_DIR shadowsocks-libev-$SS_VER
 ENV SS_DEP autoconf build-base curl libtool linux-headers openssl-dev
 
-RUN set -ex \
+RUN    set -ex \
     && apk add --update $SS_DEP \
     && curl -sSL $SS_URL | tar xz \
     && cd $SS_DIR \
-        && ./configure \
-        && make install \
-        && cd .. \
-        && rm -rf $SS_DIR \
+    && ./configure \
+    && make install \
+    && cd .. \
+    && rm -rf $SS_DIR \
     && apk del --purge $SS_DEP \
     && rm -rf /var/cache/apk/*
 
@@ -33,9 +33,10 @@ EXPOSE $SERVER_PORT/udp
 
 CMD ss-server -s $SERVER_ADDR \
               -p $SERVER_PORT \
-              -k ${PASSWORD:-$(hostname)} \
               -m $METHOD \
+              -k $PASSWORD \
               -t $TIMEOUT \
-              --fast-open \
               -d $DNS_ADDR \
-              -u
+              -u \
+              -A \
+              --fast-open
